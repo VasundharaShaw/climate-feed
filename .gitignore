@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+public/
+.DS_Store
+data/*.db-wal
+data/*.db-shm

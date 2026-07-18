@@ -1,0 +1,65 @@
+name: daily-ingest
+
+# 03:20 UTC. Off-peak for the runner region, and after arXiv's nightly
+# announcement (20:00 ET) so we catch a full day in one pass.
+# Deliberately NOT hourly: 24x the CI minutes for near-zero extra freshness.
+on:
+  schedule:
+    - cron: "20 3 * * *"
+  workflow_dispatch:
+
+# Cancel a queued run if another is already going. Prevents pile-ups
+# burning duplicate minutes after an outage.
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15   # hard stop; a hung request should not bill 6 hours
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip   # skips re-downloading wheels every single day
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      # The database is the state. Restoring it is what makes the run
+      # incremental — without it every run is a full backfill.
+      - name: Restore database
+        uses: actions/cache@v4
+        with:
+          path: data/feed.db
+          key: feed-db-${{ github.run_id }}
+          restore-keys: feed-db-
+
+      - name: Ingest
+        run: python -m ingest.run
+
+      - name: Build static site
+        run: python -m site_build
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          command: pages deploy public --project-name=climate-feed
+
+      # Commit the DB so it is versioned, citable, and survives cache eviction.
+      - name: Persist database
+        run: |
+          git config user.name  "ingest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f data/feed.db
+          git diff --staged --quiet || git commit -m "data: $(date -u +%F)"
+          git push

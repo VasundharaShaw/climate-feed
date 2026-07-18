@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: climate-feed
+message: If you use this corpus, please cite it.
+type: software
+authors:
+  - family-names: Shaw
+    given-names: Vasundhara
+    orcid: "https://orcid.org/0000-0002-5824-7191"
+license: MIT
+repository-code: "https://github.com/USER/climate-feed"
