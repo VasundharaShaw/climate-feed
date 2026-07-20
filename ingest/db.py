@@ -8,13 +8,16 @@ the final date) rather than overwrite good data with nulls.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .normalise import find_duplicate
 
-DB_PATH = Path("data/feed.db")
+# Resolved at call time, not import time, so it stays overridable
+# (tests, a separate dev database, a different checkout layout).
+DB_PATH = Path(os.environ.get("FEED_DB", "data/feed.db"))
 SCHEMA_PATH = Path("schema.sql")
 
 
@@ -22,7 +25,8 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def connect(path: Path = DB_PATH) -> sqlite3.Connection:
+def connect(path: Path | None = None) -> sqlite3.Connection:
+    path = path or DB_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row

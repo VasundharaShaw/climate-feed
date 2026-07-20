@@ -10,7 +10,11 @@ Two things here are doing the low-carbon work:
                keyset scan rather than an offset scan. Cheaper for them,
                and it does not break past 10,000 results.
 
-Filtering uses `from_created_date`, not `from_publication_date`: we want
+  `api_key=` — required since February 2026. The polite pool and the
+               `mailto` parameter were retired; limits are now credit-based
+               per key rather than per IP.
+
+Filtering uses `from_publication_date`, not `from_publication_date`: we want
 records that entered the index since our last run, regardless of the date
 printed on the paper. Backfilled records would otherwise be missed forever.
 """
@@ -21,6 +25,7 @@ import json
 from datetime import date, timedelta
 
 from . import http
+from ..config import require_openalex_key
 from ..normalise import block_key, norm_doi, norm_openalex, title_key
 
 BASE = "https://api.openalex.org/works"
@@ -56,7 +61,7 @@ def fetch(since: str | None = None, max_pages: int = 25):
     """Yield normalised records created on or after `since` (ISO date)."""
     since = since or (date.today() - timedelta(days=2)).isoformat()
 
-    filters = f"from_created_date:{since},topics.id:{'|'.join(CLIMATE_TOPICS)}"
+    filters = f"from_publication_date:{since},topics.id:{'|'.join(CLIMATE_TOPICS)}"
     cursor, pages = "*", 0
 
     while cursor and pages < max_pages:
@@ -65,7 +70,7 @@ def fetch(since: str | None = None, max_pages: int = 25):
             "select": SELECT,
             "per-page": 200,
             "cursor": cursor,
-            "mailto": "you@example.org",   # polite pool: faster, higher limits
+            "api_key": require_openalex_key(),
         })
         payload = resp.json()
 
