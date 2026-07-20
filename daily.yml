@@ -1,0 +1,76 @@
+name: daily-ingest
+
+# 03:20 UTC: off-peak for the runner region, and after arXiv's nightly
+# announcement so one pass catches a full day.
+# Deliberately not hourly — 24x the CI minutes for near-zero extra freshness.
+on:
+  schedule:
+    - cron: "20 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # commit the database back
+  pages: write      # publish to GitHub Pages
+  id-token: write   # required by deploy-pages
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15   # a hung request must not bill six hours
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      # The database is the state. Restoring it is what makes the run
+      # incremental — without it, every run is a full backfill.
+      - name: Restore database
+        uses: actions/cache@v4
+        with:
+          path: data/feed.db
+          key: feed-db-${{ github.run_id }}
+          restore-keys: feed-db-
+
+      - name: Ingest
+        run: python -m ingest.run
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+
+      - name: Build static site
+        run: python -m site_build
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      # Commit the DB so the corpus is versioned, citable, and survives
+      # cache eviction.
+      - name: Persist database
+        run: |
+          git config user.name  "ingest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f data/feed.db
+          git diff --staged --quiet || git commit -m "data: $(date -u +%F)"
+          git push
+
+  deploy:
+    needs: ingest
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
