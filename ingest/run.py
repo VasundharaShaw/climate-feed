@@ -18,7 +18,8 @@ import traceback
 from collections import Counter
 
 from . import db, http
-from .sources import arxiv, openalex
+from .classify import classify_record
+from .sources import arxiv, openalex, policy
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,7 +38,7 @@ def run_openalex(conn, counts, args) -> None:
     newest = since
     n = 0
     for rec in openalex.fetch(since=since):
-        counts[db.upsert(conn, rec)] += 1
+        counts[db.upsert(conn, classify_record(rec))] += 1
         n += 1
         if rec["published_date"] and (not newest or rec["published_date"] > newest):
             newest = rec["published_date"]
@@ -53,7 +54,7 @@ def run_arxiv(conn, counts, args) -> None:
     n = 0
     for rec in arxiv.fetch(watermark=watermark):
         raw = rec.pop("_published_raw", None)
-        counts[db.upsert(conn, rec)] += 1
+        counts[db.upsert(conn, classify_record(rec))] += 1
         n += 1
         if raw and (not newest or raw > newest):
             newest = raw
@@ -62,7 +63,24 @@ def run_arxiv(conn, counts, args) -> None:
         db.set_state(conn, "arxiv", watermark=newest)
 
 
-RUNNERS = {"openalex": run_openalex, "arxiv": run_arxiv}
+def run_policy(conn, counts, args) -> None:
+    """RSS feeds from analysis desks, think tanks and agencies."""
+    state = db.get_state(conn, "policy")
+    watermark = state["watermark"] if state else None
+    newest = watermark
+    n = 0
+    for rec in policy.fetch(watermark=watermark):
+        counts[db.upsert(conn, classify_record(rec))] += 1
+        n += 1
+        d = rec["published_date"]
+        if d and (not newest or d > newest):
+            newest = d
+    log.info("policy: %d records processed", n)
+    if not args.dry_run:
+        db.set_state(conn, "policy", watermark=newest)
+
+
+RUNNERS = {"openalex": run_openalex, "arxiv": run_arxiv, "policy": run_policy}
 
 
 def main() -> int:

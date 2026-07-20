@@ -59,11 +59,11 @@ def upsert(conn: sqlite3.Connection, rec: dict) -> str:
             """INSERT INTO works
                (doi, arxiv_id, openalex_id, title_key, block_key, title,
                 abstract, authors, venue, published_date, url, pdf_url,
-                is_oa, sources, kind, topics, first_seen, last_updated)
+                is_oa, sources, kind, topics, score, tier, first_seen, last_updated)
                VALUES (:doi, :arxiv_id, :openalex_id, :title_key, :block_key,
                        :title, :abstract, :authors, :venue, :published_date,
                        :url, :pdf_url, :is_oa, :sources, :kind, :topics,
-                       :first_seen, :last_updated)""",
+                       :score, :tier, :first_seen, :last_updated)""",
             {**_defaults(rec), "first_seen": now(), "last_updated": now()},
         )
         return "new"
@@ -106,7 +106,7 @@ def upsert(conn: sqlite3.Connection, rec: dict) -> str:
 def _defaults(rec: dict) -> dict:
     keys = ("doi", "arxiv_id", "openalex_id", "title_key", "block_key", "title",
             "abstract", "authors", "venue", "published_date", "url", "pdf_url",
-            "is_oa", "sources", "kind", "topics")
+            "is_oa", "sources", "kind", "topics", "score", "tier")
     return {k: rec.get(k) for k in keys}
 
 
