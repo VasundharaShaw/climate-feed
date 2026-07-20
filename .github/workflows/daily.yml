@@ -44,6 +44,8 @@ jobs:
 
       - name: Ingest
         run: python -m ingest.run
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
 
       - name: Build static site
         run: python -m site_build
