@@ -220,6 +220,15 @@ article h2 a:hover,article h2 a:focus-visible{background-size:100% 1px;
 .tag.score{color:var(--pale);border-color:var(--rule);font-variant-numeric:
   tabular-nums}
 
+.cites{list-style:none;padding:0;margin:12px 0 8px;font-size:.76rem;
+  line-height:1.55}
+.cites li{padding-left:13px;position:relative;margin-bottom:5px;
+  color:rgba(157,199,196,.85)}
+.cites li:before{content:"\\2014";position:absolute;left:0;
+  color:rgba(157,199,196,.45)}
+.modnote{font-size:.72rem !important;
+  color:rgba(157,199,196,.6) !important;font-style:italic}
+
 /* ---- about + colophon ---- */
 .about{border-top:1px solid var(--rule);padding:44px 0 8px;
   display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:36px}
@@ -628,9 +637,19 @@ def render() -> str:
     co2 = f"{last_run['co2e_g']:.2f} g" if last_run and last_run["co2e_g"] else "—"
 
     imgs = _images()
-    note = imgs.get("hero", {}).get("note", "")
-    banner_block = (f"<div>\n<h3>The banner</h3>\n<p>{esc(note)}</p>\n</div>"
-                    if note else "")
+    hero_meta = imgs.get("hero", {})
+    note = hero_meta.get("note", "")
+    cites = "".join(
+        f'<li><a href="{esc(c["url"])}" rel="noopener">{esc(c["text"])}</a></li>'
+        for c in hero_meta.get("credits", []))
+    modified = hero_meta.get("modified", "")
+    banner_block = (
+        "<div>\n<h3>The banner</h3>\n"
+        f"<p>{esc(note)}</p>\n"
+        + (f'<ul class="cites">{cites}</ul>\n' if cites else "")
+        + (f'<p class="modnote">{esc(modified)}</p>\n' if modified else "")
+        + "</div>"
+    ) if note or cites else ""
 
     stats = f"""<div class="stats">
 <div><b>{len(rows):,}</b>works accepted</div>
