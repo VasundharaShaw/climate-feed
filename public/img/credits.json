@@ -1,0 +1,57 @@
+{
+  "hero": {
+    "id": "hero",
+    "title": "Earth and Moon over the warming stripes, 1850 to 2025",
+    "alt": "The Earth and Moon photographed from space, set against vertical stripes progressing from blue on the left to dark red on the right, showing global mean temperature for each year from 1850 to 2025.",
+    "note": "Each stripe is one year of global mean temperature, progressing from blue (cooler) at 1850 on the left to red (warmer) at 2025 on the right. The graphic was designed by climatologist Ed Hawkins. The photograph behind it combines two Galileo images, of Earth and of the Moon, returned in 1992 en route to Jupiter.",
+    "credits": [
+      {
+        "text": "Photograph: NASA/JPL/USGS, PIA00342",
+        "url": "https://images.nasa.gov/details/PIA00342"
+      },
+      {
+        "text": "Warming stripes: Ed Hawkins, University of Reading, CC BY-SA 4.0",
+        "url": "https://commons.wikimedia.org/wiki/File:GLOBAL-STRIPES-1850-2025-hires.png"
+      },
+      {
+        "text": "This composite: CC BY-SA 4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+      }
+    ],
+    "modified": "Cropped, resized, and composited: the photograph is masked over the stripes using its own luminance.",
+    "width": 2400,
+    "height": 800,
+    "files": [
+      {
+        "path": "hero-640.webp",
+        "width": 640,
+        "bytes": 6704,
+        "type": "image/webp"
+      },
+      {
+        "path": "hero-1200.webp",
+        "width": 1200,
+        "bytes": 17578,
+        "type": "image/webp"
+      },
+      {
+        "path": "hero-1800.webp",
+        "width": 1800,
+        "bytes": 32740,
+        "type": "image/webp"
+      },
+      {
+        "path": "hero-2400.webp",
+        "width": 2400,
+        "bytes": 50108,
+        "type": "image/webp"
+      },
+      {
+        "path": "hero-1200.jpg",
+        "width": 1200,
+        "bytes": 65029,
+        "type": "image/jpeg"
+      }
+    ]
+  }
+}

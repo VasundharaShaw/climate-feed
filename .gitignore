@@ -1,6 +1,11 @@
 __pycache__/
 *.pyc
-public/
+# public/ is build output, with one exception: the banner images
+# are inputs, not generated, and CI has no way to recreate them.
+# Git cannot re-include a path under an ignored directory, so the
+# directory itself must stay un-ignored and the outputs listed.
+public/*.html
+public/img/*.webp.bak
 .DS_Store
 data/*.db-wal
 data/*.db-shm
