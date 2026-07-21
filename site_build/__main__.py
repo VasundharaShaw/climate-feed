@@ -628,7 +628,9 @@ def render() -> str:
     co2 = f"{last_run['co2e_g']:.2f} g" if last_run and last_run["co2e_g"] else "—"
 
     imgs = _images()
-    hero_note = esc(imgs.get("hero", {}).get("note", ""))
+    note = imgs.get("hero", {}).get("note", "")
+    banner_block = (f"<div>\n<h3>The banner</h3>\n<p>{esc(note)}</p>\n</div>"
+                    if note else "")
 
     stats = f"""<div class="stats">
 <div><b>{len(rows):,}</b>works accepted</div>
@@ -642,10 +644,7 @@ def render() -> str:
             f'<div class="lede">\n<p>{LEDE}</p>\n<p>{LEDE_2}</p>\n</div>')
 
     about = f"""<section class="about" id="about">
-<div>
-<h3>The banner</h3>
-<p>{hero_note}</p>
-</div>
+{banner_block}
 <div>
 <h3>What this is</h3>
 <p>A daily layer of new climate research and policy analysis, pulled
