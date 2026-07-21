@@ -58,6 +58,43 @@ NEGATIVE = {
     "tumor": -2.0, "carcinoma": -2.0, "clinical trial": -1.5,
 }
 
+
+# --- German -----------------------------------------------------------
+# The lexicon above is English-only, so German-language policy documents
+# scored zero and were rejected wholesale. German compounds mean the
+# useful terms are long and specific, which suits this approach: matching
+# "klimaschutzgesetz" is far less ambiguous than matching "climate".
+#
+# Note the word-boundary rule in _has() means a bare "klima" would not
+# match inside "klimaschutz", so compounds are listed explicitly rather
+# than relying on a stem.
+CORE_DE = {
+    "klimawandel": 3.0, "klimakrise": 3.0, "klimapolitik": 3.0,
+    "klimaschutz": 2.5, "klimaschutzgesetz": 3.0, "klimaschutzprogramm": 3.0,
+    "klimaziel": 3.0, "klimaneutral": 2.5, "klimabilanz": 2.5,
+    "klimaforschung": 3.0, "klimamodell": 3.0, "klimafolgen": 2.5,
+    "klimaanpassung": 3.0, "klimarat": 2.5, "klimafragen": 2.5,
+    "klimagerechtigkeit": 3.0, "klimafinanzierung": 2.5,
+    "erderwärmung": 3.0, "erderhitzung": 3.0, "treibhausgas": 2.5,
+    "treibhausgasminderung": 2.5, "treibhausgasbilanz": 2.5,
+    "emissionshandel": 2.5, "emissionsminderung": 2.0,
+    "co2-preis": 2.5, "co2-bepreisung": 2.5, "co2-ausstoß": 2.5,
+    "dekarbonisierung": 2.5, "energiewende": 2.5, "kohleausstieg": 2.5,
+    "pariser abkommen": 3.0, "pariser klimaabkommen": 3.0,
+    "extremwetter": 2.5, "hitzewelle": 2.0, "meeresspiegel": 2.5,
+    "gletscher": 2.0, "dürre": 1.5, "starkregen": 1.5,
+    "paläoklima": 3.0, "kipppunkt": 1.5, "klimaneutralität": 2.5,
+}
+
+CONTEXT_DE = {
+    "erneuerbare": 0.8, "windkraft": 0.6, "windenergie": 0.6,
+    "photovoltaik": 0.5, "solarenergie": 0.5, "wasserstoff": 0.5,
+    "verkehrswende": 0.8, "wärmewende": 0.8, "energieeffizienz": 0.5,
+    "nachhaltigkeit": 0.4, "umweltschutz": 0.5, "biodiversität": 0.4,
+    "umweltbundesamt": 0.6, "bundesregierung": 0.2, "emissionen": 0.6,
+    "ausstoß": 0.4, "moorschutz": 0.6, "waldumbau": 0.5,
+}
+
 ACCEPT = 2.5
 UNCERTAIN = 0.8
 
@@ -96,7 +133,7 @@ def score(title: str | None, abstract: str | None,
     total = 0.0
     hits: list[str] = []
 
-    for lexicon in (CORE, CONTEXT, NEGATIVE):
+    for lexicon in (CORE, CORE_DE, CONTEXT, CONTEXT_DE, NEGATIVE):
         for term, weight in lexicon.items():
             in_t, in_a = _has(term, t), _has(term, a)
             if not (in_t or in_a):
@@ -105,7 +142,8 @@ def score(title: str | None, abstract: str | None,
             if weight > 0:
                 hits.append(term)
 
-    core_hit = any(_has(term, t) or _has(term, a) for term in CORE)
+    core_hit = any(_has(term, t) or _has(term, a)
+                   for term in (*CORE, *CORE_DE))
     if not core_hit and total < 2.0:
         total *= 0.5
 
@@ -131,7 +169,13 @@ PREFILTER_BONUS = 1.5
 
 
 def classify_record(rec: dict) -> dict:
-    """Attach score and tier."""
+    """Attach score and tier.
+
+    Curated sources bypass the threshold. The lexicon exists because arXiv
+    and OpenAlex are firehoses that must be filtered; a hand-picked feed
+    from an agency or a climate newsroom is already the filter, and running
+    a keyword test over it only manufactures false negatives. The score is
+    still computed and stored so the decision stays inspectable."""
     s, _tier, _hits = score(rec.get("title"), rec.get("abstract"),
                             rec.get("topics"))
     # Only boost when the text itself corroborates. With no lexical signal
@@ -140,6 +184,11 @@ def classify_record(rec: dict) -> dict:
     if s > 0 and "openalex" in (rec.get("sources") or ""):
         s += PREFILTER_BONUS
     rec["score"] = round(s, 2)
-    rec["tier"] = ("accept" if s >= ACCEPT else
-                   "uncertain" if s >= UNCERTAIN else "reject")
+    if rec.get("curated") and s >= 0:
+        # Negative score still rejects: it means NEGATIVE terms fired, which
+        # is the case where even a trusted feed has wandered off-topic.
+        rec["tier"] = "accept"
+    else:
+        rec["tier"] = ("accept" if s >= ACCEPT else
+                       "uncertain" if s >= UNCERTAIN else "reject")
     return rec

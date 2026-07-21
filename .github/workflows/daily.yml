@@ -1,26 +1,26 @@
 name: daily-ingest
 
-# 03:20 UTC. Off-peak for the runner region, and after arXiv's nightly
-# announcement (20:00 ET) so we catch a full day in one pass.
-# Deliberately NOT hourly: 24x the CI minutes for near-zero extra freshness.
+# 03:20 UTC: off-peak for the runner region, and after arXiv's nightly
+# announcement so one pass catches a full day.
+# Deliberately not hourly — 24x the CI minutes for near-zero extra freshness.
 on:
   schedule:
     - cron: "20 3 * * *"
   workflow_dispatch:
 
-# Cancel a queued run if another is already going. Prevents pile-ups
-# burning duplicate minutes after an outage.
 concurrency:
   group: ingest
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: write   # commit the database back
+  pages: write      # publish to GitHub Pages
+  id-token: write   # required by deploy-pages
 
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 15   # hard stop; a hung request should not bill 6 hours
+    timeout-minutes: 15   # a hung request must not bill six hours
 
     steps:
       - uses: actions/checkout@v4
@@ -28,13 +28,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip   # skips re-downloading wheels every single day
+          cache: pip
 
       - name: Install
         run: pip install -r requirements.txt
 
       # The database is the state. Restoring it is what makes the run
-      # incremental — without it every run is a full backfill.
+      # incremental — without it, every run is a full backfill.
       - name: Restore database
         uses: actions/cache@v4
         with:
@@ -50,14 +50,13 @@ jobs:
       - name: Build static site
         run: python -m site_build
 
-      - name: Deploy
-        uses: cloudflare/wrangler-action@v3
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
         with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          command: pages deploy public --project-name=climate-feed
+          path: public
 
-      # Commit the DB so it is versioned, citable, and survives cache eviction.
+      # Commit the DB so the corpus is versioned, citable, and survives
+      # cache eviction.
       - name: Persist database
         run: |
           git config user.name  "ingest-bot"
@@ -65,3 +64,13 @@ jobs:
           git add -f data/feed.db
           git diff --staged --quiet || git commit -m "data: $(date -u +%F)"
           git push
+
+  deploy:
+    needs: ingest
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

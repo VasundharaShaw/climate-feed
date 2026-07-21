@@ -15,9 +15,7 @@ from pathlib import Path
 
 from .normalise import find_duplicate
 
-# Resolved at call time, not import time, so it stays overridable
-# (tests, a separate dev database, a different checkout layout).
-DB_PATH = Path(os.environ.get("FEED_DB", "data/feed.db"))
+DB_PATH = Path(os.environ.get("FEED_DB","data/feed.db"))
 SCHEMA_PATH = Path("schema.sql")
 
 
@@ -31,7 +29,23 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA_PATH.read_text())
+    _migrate(conn)
     return conn
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Additive migrations for databases created before a column existed.
+
+    ALTER TABLE ADD COLUMN is cheap and non-destructive in SQLite, and the
+    committed database predates some of these, so this runs every connect
+    rather than being a one-off script."""
+    have = {r[1] for r in conn.execute("PRAGMA table_info(works)")}
+    if "region" not in have:
+        # 'global' rather than NULL so existing rows sort somewhere sensible
+        # and the site never has to special-case a missing value.
+        conn.execute(
+            "ALTER TABLE works ADD COLUMN region TEXT NOT NULL DEFAULT 'global'")
+        conn.commit()
 
 
 # Fields where a non-empty incoming value fills a null but never clobbers
@@ -59,11 +73,12 @@ def upsert(conn: sqlite3.Connection, rec: dict) -> str:
             """INSERT INTO works
                (doi, arxiv_id, openalex_id, title_key, block_key, title,
                 abstract, authors, venue, published_date, url, pdf_url,
-                is_oa, sources, kind, topics, score, tier, first_seen, last_updated)
+                is_oa, sources, kind, topics, score, tier, region,
+                first_seen, last_updated)
                VALUES (:doi, :arxiv_id, :openalex_id, :title_key, :block_key,
                        :title, :abstract, :authors, :venue, :published_date,
                        :url, :pdf_url, :is_oa, :sources, :kind, :topics,
-                       :score, :tier, :first_seen, :last_updated)""",
+                       :score, :tier, :region, :first_seen, :last_updated)""",
             {**_defaults(rec), "first_seen": now(), "last_updated": now()},
         )
         return "new"
@@ -106,8 +121,11 @@ def upsert(conn: sqlite3.Connection, rec: dict) -> str:
 def _defaults(rec: dict) -> dict:
     keys = ("doi", "arxiv_id", "openalex_id", "title_key", "block_key", "title",
             "abstract", "authors", "venue", "published_date", "url", "pdf_url",
-            "is_oa", "sources", "kind", "topics", "score", "tier")
-    return {k: rec.get(k) for k in keys}
+            "is_oa", "sources", "kind", "topics", "score", "tier",
+            "region")
+    d = {k: rec.get(k) for k in keys}
+    d["region"] = d["region"] or "global"
+    return d
 
 
 def get_state(conn, source: str) -> sqlite3.Row | None:

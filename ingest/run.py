@@ -19,7 +19,7 @@ from collections import Counter
 
 from . import db, http
 from .classify import classify_record
-from .sources import arxiv, openalex, policy
+from .sources import arxiv, de_policy, openalex, policy
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,8 +28,38 @@ logging.basicConfig(
 )
 log = logging.getLogger("ingest")
 
-GRID_INTENSITY = 250.0   # gCO2e/kWh, European average
+# --- emissions coefficients ------------------------------------------
+# Both are assumptions. The byte count they multiply is measured; these are
+# not. Cite them, state their year and boundary, and do not present the
+# product as a measurement.
+#
+# Aslan, J., Mayers, K., Koomey, J.G. & France, C. (2018). "Electricity
+# Intensity of Internet Data Transmission: Untangling the Estimates."
+# Journal of Industrial Ecology 22(4), 785-798. doi:10.1111/jiec.12630
+#
+# Their headline estimate is 0.06 kWh/GB for 2015, covering core and
+# fixed-line access networks only -- not data centres, not end-user
+# devices. Two caveats matter:
+#
+#   1. The same paper finds intensity has halved roughly every two years
+#      since 2000 in developed countries. Applied unadjusted a decade
+#      later, 0.06 is therefore an over-estimate, probably by an order of
+#      magnitude. It is kept here as a deliberately conservative upper
+#      bound rather than a best estimate.
+#   2. Published estimates for this quantity span several orders of
+#      magnitude depending on where the system boundary is drawn.
 KWH_PER_GB = 0.06
+
+# European Environment Agency, greenhouse gas emission intensity of
+# electricity generation. The EU-27 average was about 230 gCO2e/kWh in 2020
+# and has fallen since, so 250 is slightly high for the EU today.
+# https://www.eea.europa.eu/en/analysis/indicators/greenhouse-gas-emission-intensity-of-1
+#
+# The average also conceals an enormous spread -- Poland was near 700
+# gCO2e/kWh in 2020, Sweden and Norway near zero -- and this build runs on
+# GitHub-hosted infrastructure whose location is not disclosed. Treat this
+# as a placeholder for a figure that should really be measured.
+GRID_INTENSITY = 250.0   # gCO2e/kWh
 
 
 def run_openalex(conn, counts, args) -> None:
@@ -63,6 +93,23 @@ def run_arxiv(conn, counts, args) -> None:
         db.set_state(conn, "arxiv", watermark=newest)
 
 
+def run_de_policy(conn, counts, args) -> None:
+    """German agencies, advisory councils, institutes and free journalism."""
+    state = db.get_state(conn, "de_policy")
+    watermark = state["watermark"] if state else None
+    newest = watermark
+    n = 0
+    for rec in de_policy.fetch(watermark=watermark):
+        counts[db.upsert(conn, classify_record(rec))] += 1
+        n += 1
+        d = rec["published_date"]
+        if d and (not newest or d > newest):
+            newest = d
+    log.info("de_policy: %d records processed", n)
+    if not args.dry_run:
+        db.set_state(conn, "de_policy", watermark=newest)
+
+
 def run_policy(conn, counts, args) -> None:
     """RSS feeds from analysis desks, think tanks and agencies."""
     state = db.get_state(conn, "policy")
@@ -80,7 +127,8 @@ def run_policy(conn, counts, args) -> None:
         db.set_state(conn, "policy", watermark=newest)
 
 
-RUNNERS = {"openalex": run_openalex, "arxiv": run_arxiv, "policy": run_policy}
+RUNNERS = {"openalex": run_openalex, "arxiv": run_arxiv,
+           "policy": run_policy, "de_policy": run_de_policy}
 
 
 def main() -> int:

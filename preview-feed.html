@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>climate-feed — new climate research and policy, daily</title>
+<meta name="description" content="A daily layer of new climate science research and policy documents, drawn from OpenAlex, arXiv and policy newsrooms.">
+<style>
+:root{
+  /* Earth from orbit: ocean, shelf, chlorophyll. Dark ground because the
+     imagery is of a lit planet against space -- and because a dark page
+     costs less energy to display on OLED, which this site cares about. */
+  --deep:#04171C;          /* deep ocean at night */
+  --abyss:#0B2B33;         /* raised surfaces */
+  --shelf:#12505A;         /* continental shelf */
+  --pale:#9DC7C4;          /* pale sea-glass, secondary text */
+  --snow:#EAF5F2;          /* primary text */
+  --ocean:#3E9FD4;         /* research accent, hydrosphere blue */
+  --bloom:#42C08A;         /* policy accent, chlorophyll green */
+  --rule:rgba(157,199,196,.2);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}
+  *{animation:none!important;transition:none!important}}
+body{
+  margin:0;background:var(--deep);color:var(--snow);
+  font-family:var(--sans);line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+/* ---- masthead ---- */
+header{border-bottom:1px solid var(--rule);padding:56px 0 28px;margin-bottom:8px}
+h1{
+  font-size:clamp(2.4rem,6vw,4.2rem);line-height:.95;margin:0 0 18px;
+  font-weight:800;letter-spacing:-.045em;
+}
+h1 .sub{display:block;color:var(--pale);font-weight:300;
+  font-size:clamp(.9rem,2vw,1.05rem);letter-spacing:.16em;
+  text-transform:uppercase;margin-top:16px}
+.stats{display:flex;flex-wrap:wrap;gap:28px;font-family:var(--mono);
+  font-size:.76rem;color:var(--pale);margin-top:24px}
+.stats b{display:block;color:var(--snow);font-size:1.5rem;font-weight:600;
+  letter-spacing:-.02em;margin-bottom:2px}
+
+/* ---- search ---- */
+.search{margin:28px 0 0;position:relative}
+.search input{
+  width:100%;padding:13px 16px;background:rgba(157,199,196,.07);
+  border:1px solid var(--rule);border-radius:2px;color:var(--snow);
+  font-family:var(--mono);font-size:.85rem;
+}
+.search input:focus{outline:2px solid var(--ocean);outline-offset:1px;
+  background:rgba(157,199,196,.11)}
+.search input::placeholder{color:rgba(157,199,196,.5)}
+
+/* ---- the core ---- */
+.core-layout{display:grid;grid-template-columns:64px 1fr;gap:32px;
+  padding:40px 0 80px;align-items:start}
+.core{position:sticky;top:24px;display:flex;flex-direction:column;gap:2px}
+.core-label{font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;
+  color:rgba(157,199,196,.55);text-transform:uppercase;margin-bottom:8px;
+  writing-mode:vertical-rl;height:80px}
+.stratum{
+  display:block;border-radius:1px;background:var(--shelf);
+  border-left:3px solid var(--ocean);
+  transition:background .18s,border-color .18s;
+  position:relative;
+}
+.stratum:hover,.stratum:focus-visible{background:var(--ocean);
+  border-color:var(--snow);outline:none}
+.stratum span{position:absolute;left:100%;margin-left:8px;top:50%;
+  transform:translateY(-50%);font-family:var(--mono);font-size:.6rem;
+  color:var(--pale);white-space:nowrap;opacity:0;pointer-events:none;
+  transition:opacity .18s}
+.stratum:hover span,.stratum:focus-visible span{opacity:1}
+
+/* ---- days ---- */
+.day{margin-bottom:52px;scroll-margin-top:24px}
+.day-head{display:flex;align-items:baseline;gap:14px;
+  padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid var(--rule)}
+.day-date{font-family:var(--mono);font-size:1rem;letter-spacing:.04em;
+  color:var(--snow);font-weight:600}
+.day-count{font-family:var(--mono);font-size:.7rem;color:var(--pale)}
+.day-depth{margin-left:auto;font-family:var(--mono);font-size:.62rem;
+  color:rgba(157,199,196,.45)}
+
+/* ---- entries ---- */
+article{padding:16px 0;border-bottom:1px solid rgba(157,199,196,.08)}
+article:last-child{border-bottom:none}
+article h2{margin:0 0 7px;font-size:1.02rem;line-height:1.34;font-weight:500;
+  letter-spacing:-.008em}
+article h2 a{text-decoration:none;background-image:linear-gradient(var(--ocean),var(--ocean));
+  background-size:0 1px;background-position:0 100%;background-repeat:no-repeat;
+  transition:background-size .2s}
+article h2 a:hover,article h2 a:focus-visible{background-size:100% 1px;
+  color:var(--ocean);outline:none}
+.meta{font-family:var(--mono);font-size:.7rem;color:var(--pale);
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.meta .authors{color:rgba(234,245,242,.72)}
+.tag{padding:1px 7px;border:1px solid currentColor;border-radius:1px;
+  font-size:.6rem;letter-spacing:.1em;text-transform:uppercase}
+.tag.research{color:var(--ocean)}
+.tag.policy{color:var(--bloom)}
+.tag.oa{color:var(--pale);opacity:.7}
+.abstract{margin:9px 0 0;font-size:.86rem;color:rgba(234,245,242,.62);
+  line-height:1.55;max-width:68ch}
+
+
+.lede{margin:26px 0 0;max-width:60ch}
+.lede p{margin:0 0 12px;font-size:.98rem;line-height:1.62;
+  color:rgba(234,245,242,.82)}
+.lede p+p{font-size:.9rem;color:rgba(157,199,196,.78)}
+@media(max-width:640px){.lede p{font-size:.92rem}}
+
+/* ---- hero: Earth from orbit ---- */
+.hero{position:relative;margin:0 0 4px;border-bottom:1px solid var(--rule)}
+.hero-img{display:block;width:100%;height:clamp(200px,34vh,360px);
+  object-fit:cover;object-position:left center;
+  filter:saturate(1.05) contrast(1.03)}
+.hero-veil{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(4,23,28,.22) 0%,
+    rgba(4,23,28,0) 38%,rgba(4,23,28,.5) 78%,rgba(4,23,28,.95) 100%)}
+.hero-credit{position:absolute;right:11px;bottom:7px;display:flex;
+  flex-direction:column;align-items:flex-end;gap:2px;font-family:var(--mono);
+  font-size:.56rem;letter-spacing:.05em;line-height:1.4;text-align:right}
+.hero-credit a{color:rgba(234,245,242,.6);text-decoration:none}
+.hero-credit a:hover,.hero-credit a:focus-visible{color:var(--snow);
+  outline:none}
+
+.figure{margin:32px 0 0;border-top:1px solid var(--rule);padding-top:26px}
+.figure img{display:block;width:100%;height:auto;border-radius:2px}
+.figure figcaption{margin-top:10px;font-family:var(--mono);font-size:.66rem;
+  line-height:1.6;color:rgba(157,199,196,.7)}
+.figure figcaption a{color:var(--pale)}
+
+.calc{font-family:var(--mono);font-size:.74rem;line-height:1.75;
+  color:var(--pale);background:var(--abyss);border:1px solid var(--rule);
+  border-radius:2px;padding:14px 16px;margin:0 0 12px;overflow-x:auto;
+  white-space:pre}
+.about a.jump{color:var(--ocean);text-decoration:none;
+  border-bottom:1px solid rgba(62,159,212,.35)}
+
+/* ---- page tabs ---- */
+.tabs{display:flex;gap:2px;margin:26px 0 0;border-bottom:1px solid var(--rule)}
+.tab{padding:9px 15px 8px;font-family:var(--mono);font-size:.72rem;
+  letter-spacing:.1em;text-transform:uppercase;text-decoration:none;
+  color:var(--pale);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--snow)}
+.tab:focus-visible{outline:2px solid var(--ocean);outline-offset:-2px}
+.tab.on{color:var(--ocean);border-bottom-color:var(--ocean)}
+.tag.score{color:var(--pale);border-color:var(--rule);font-variant-numeric:
+  tabular-nums}
+
+/* ---- about + colophon ---- */
+.about{border-top:1px solid var(--rule);padding:44px 0 8px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:36px}
+.about h3{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--pale);margin:0 0 12px;font-family:var(--mono);font-weight:500}
+.about p{margin:0 0 10px;font-size:.85rem;color:rgba(234,245,242,.72);
+  line-height:1.6;max-width:46ch}
+.about a{color:var(--ocean);text-decoration:none;
+  border-bottom:1px solid rgba(62,159,212,.35)}
+.about a:hover,.about a:focus-visible{border-bottom-color:var(--ocean);
+  outline:none}
+.about .mail{font-family:var(--mono);font-size:.8rem;word-break:break-all}
+.cta{display:inline-block;margin-top:10px;padding:9px 16px;
+  border:1px solid var(--ocean);color:var(--ocean);
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;
+  text-transform:uppercase;text-decoration:none;border-bottom-width:1px}
+.cta:hover,.cta:focus-visible{background:var(--ocean);
+  color:var(--deep);outline:none}
+
+/* ---- contact page ---- */
+.page{max-width:620px;padding:36px 0 80px}
+.page p{font-size:.9rem;color:rgba(234,245,242,.75);line-height:1.65;
+  max-width:56ch}
+.page ul{font-size:.9rem;color:rgba(234,245,242,.75);line-height:1.9;
+  padding-left:20px;max-width:56ch}
+.contact{margin:36px 0 0;padding:28px 0 0;border-top:1px solid var(--rule)}
+.contact-lead{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--pale);margin:0 0 14px}
+.addr{display:inline-block;font-family:var(--mono);
+  font-size:clamp(.95rem,3vw,1.3rem);color:var(--ocean);
+  text-decoration:none;letter-spacing:-.01em;
+  border-bottom:1px solid rgba(62,159,212,.4);padding-bottom:2px}
+.addr:hover,.addr:focus-visible{border-bottom-color:var(--ocean);
+  outline:none}
+.copy{display:block;margin-top:20px;padding:8px 15px;background:none;
+  border:1px solid var(--rule);border-radius:2px;color:var(--pale);
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.09em;
+  text-transform:uppercase;cursor:pointer}
+.copy:hover{border-color:var(--ocean);color:var(--ocean)}
+.copy:focus-visible{outline:2px solid var(--ocean);outline-offset:2px}
+.hint{font-size:.78rem;color:rgba(157,199,196,.65);margin-top:10px;
+  line-height:1.55;max-width:52ch}
+.back{display:inline-block;margin-top:34px;font-family:var(--mono);
+  font-size:.72rem;color:var(--pale);text-decoration:none}
+.back:hover{color:var(--ocean)}
+.notice{padding:14px 16px;border:1px solid var(--bloom);border-radius:2px;
+  color:var(--bloom);font-size:.82rem;margin-bottom:24px}
+
+footer{border-top:1px solid var(--rule);padding:28px 0 56px;
+  font-family:var(--mono);font-size:.68rem;color:rgba(157,199,196,.6);
+  display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between}
+footer a{color:var(--pale)}
+.empty{padding:60px 0;color:var(--pale);font-family:var(--mono);
+  font-size:.85rem}
+
+@media (max-width:720px){
+  .core-layout{grid-template-columns:1fr;gap:0}
+  .core{display:none}
+}
+</style>
+</head><body>
+<div class="hero">
+<picture>
+<source type="image/webp" srcset="img/hero-640.webp 640w, img/hero-1200.webp 1200w, img/hero-1800.webp 1800w, img/hero-2400.webp 2400w"
+ sizes="100vw">
+<img class="hero-img" src="img/hero-1200.jpg"
+ width="2400" height="800"
+ alt="The Earth and Moon photographed from space, set against vertical stripes progressing from blue on the left to dark red on the right, showing global mean temperature for each year from 1850 to 2025."
+ fetchpriority="high" decoding="async">
+</picture>
+<div class="hero-veil"></div>
+<div class="hero-credit">
+<a href="https://images.nasa.gov/details/PIA00342" rel="noopener">Photograph: NASA/JPL/USGS, PIA00342</a>
+<a href="https://commons.wikimedia.org/wiki/File:GLOBAL-STRIPES-1850-2025-hires.png" rel="noopener">Warming stripes: Ed Hawkins, University of Reading, CC BY-SA 4.0</a>
+<a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener">This composite: CC BY-SA 4.0</a>
+</div>
+</div>
+<div class="wrap">
+<header>
+<h1>climate&#8203;-feed<span class="sub">New climate research &amp; policy, drilled daily</span></h1>
+<div class="lede">
+<p>Every day a scheduled job pulls new work from OpenAlex, arXiv and a set of policy newsrooms, scores each item for climate relevance, and publishes what passes. Nothing is selected by hand, and anything the scoring is unsure about is held back rather than shown.</p>
+<p>The site is static. No server runs between builds, so it draws no power while you are not reading it, and every build measures its own data transfer and estimated emissions.</p>
+</div>
+<nav class="tabs"><span class="tab on">Feed</span><a class="tab" href="germany.html">Germany</a><a class="tab" href="uncertain.html">Uncertain</a><a class="tab" href="feedback.html">Feedback</a></nav>
+<div class="stats">
+<div><b>89</b>works accepted</div>
+<div><b>21</b>days with new work</div>
+<div><b>138</b>records screened</div>
+<div><a href="#emissions"><b>0.02 g</b>last build transfer</a></div>
+</div>
+<div class="search"><input id="q" type="search" placeholder="Filter by title, author, journal…" aria-label="Filter works"></div>
+</header>
+
+<div class="core-layout">
+<nav class="core" aria-label="Jump to day">
+<div class="core-label">Depth →</div>
+<a class="stratum" href="#d2026-07-20" style="height:39px;opacity:1.00" aria-label="2026-07-20, 4 works"><span>2026-07-20 · 4</span></a><a class="stratum" href="#d2026-07-19" style="height:31px;opacity:0.97" aria-label="2026-07-19, 3 works"><span>2026-07-19 · 3</span></a><a class="stratum" href="#d2026-07-18" style="height:46px;opacity:0.94" aria-label="2026-07-18, 5 works"><span>2026-07-18 · 5</span></a><a class="stratum" href="#d2026-07-17" style="height:39px;opacity:0.91" aria-label="2026-07-17, 4 works"><span>2026-07-17 · 4</span></a><a class="stratum" href="#d2026-07-16" style="height:24px;opacity:0.88" aria-label="2026-07-16, 2 works"><span>2026-07-16 · 2</span></a><a class="stratum" href="#d2026-07-15" style="height:39px;opacity:0.85" aria-label="2026-07-15, 4 works"><span>2026-07-15 · 4</span></a><a class="stratum" href="#d2026-07-14" style="height:54px;opacity:0.81" aria-label="2026-07-14, 6 works"><span>2026-07-14 · 6</span></a><a class="stratum" href="#d2026-07-13" style="height:39px;opacity:0.78" aria-label="2026-07-13, 4 works"><span>2026-07-13 · 4</span></a><a class="stratum" href="#d2026-07-12" style="height:31px;opacity:0.75" aria-label="2026-07-12, 3 works"><span>2026-07-12 · 3</span></a><a class="stratum" href="#d2026-07-11" style="height:39px;opacity:0.72" aria-label="2026-07-11, 4 works"><span>2026-07-11 · 4</span></a><a class="stratum" href="#d2026-07-10" style="height:39px;opacity:0.69" aria-label="2026-07-10, 4 works"><span>2026-07-10 · 4</span></a><a class="stratum" href="#d2026-07-09" style="height:24px;opacity:0.66" aria-label="2026-07-09, 2 works"><span>2026-07-09 · 2</span></a><a class="stratum" href="#d2026-07-08" style="height:31px;opacity:0.63" aria-label="2026-07-08, 3 works"><span>2026-07-08 · 3</span></a><a class="stratum" href="#d2026-07-07" style="height:39px;opacity:0.60" aria-label="2026-07-07, 4 works"><span>2026-07-07 · 4</span></a><a class="stratum" href="#d2026-07-06" style="height:61px;opacity:0.57" aria-label="2026-07-06, 7 works"><span>2026-07-06 · 7</span></a><a class="stratum" href="#d2026-07-05" style="height:54px;opacity:0.54" aria-label="2026-07-05, 6 works"><span>2026-07-05 · 6</span></a><a class="stratum" href="#d2026-07-04" style="height:61px;opacity:0.50" aria-label="2026-07-04, 7 works"><span>2026-07-04 · 7</span></a><a class="stratum" href="#d2026-07-03" style="height:54px;opacity:0.47" aria-label="2026-07-03, 6 works"><span>2026-07-03 · 6</span></a><a class="stratum" href="#d2026-07-02" style="height:39px;opacity:0.44" aria-label="2026-07-02, 4 works"><span>2026-07-02 · 4</span></a><a class="stratum" href="#d2026-07-01" style="height:24px;opacity:0.41" aria-label="2026-07-01, 2 works"><span>2026-07-01 · 2</span></a><a class="stratum" href="#d2026-06-30" style="height:46px;opacity:0.38" aria-label="2026-06-30, 5 works"><span>2026-06-30 · 5</span></a>
+</nav>
+<main><section class="day" id="d2026-07-20">
+<div class="day-head"><span class="day-date">2026-07-20</span>
+<span class="day-count">4 works</span><div class="day-depth">layer 1</div></div>
+<article data-s="net zero pathways for european steel production m schubotz, l morejon energy policy decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.">
+<h2><a href="https://example.org/4" rel="noopener">Net zero pathways for European steel production</a></h2>
+<div class="meta"><span class="authors">M Schubotz, L Morejon</span>
+<span>Energy Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/2" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/8" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/7" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article>
+</section><section class="day" id="d2026-07-19">
+<div class="day-head"><span class="day-date">2026-07-19</span>
+<span class="day-count">3 works</span><div class="day-depth">layer 2</div></div>
+<article data-s="sea level rise projections under ssp scenarios to 2150 b marzeion, t slater, r kwok nature climate change ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.">
+<h2><a href="https://example.org/10" rel="noopener">Sea level rise projections under SSP scenarios to 2150</a></h2>
+<div class="meta"><span class="authors">B Marzeion, T Slater, R Kwok</span>
+<span>Nature Climate Change</span><span class="tag research">research</span></div>
+<p class="abstract">Ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/11" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/12" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article>
+</section><section class="day" id="d2026-07-18">
+<div class="day-head"><span class="day-date">2026-07-18</span>
+<span class="day-count">5 works</span><div class="day-depth">layer 3</div></div>
+<article data-s="climate finance flows and the paris agreement stocktake v shaw climate policy assessment of adaptation finance against unfccc commitments.">
+<h2><a href="https://example.org/21" rel="noopener">Climate finance flows and the Paris Agreement stocktake</a></h2>
+<div class="meta"><span class="authors">V Shaw</span>
+<span>Climate Policy</span><span class="tag policy">policy</span><span class="tag oa">open</span></div>
+<p class="abstract">Assessment of adaptation finance against UNFCCC commitments.</p>
+</article><article data-s="enso teleconnections and indian monsoon variability s samuel journal of climate el nino southern oscillation drives rainfall anomalies across south asia.">
+<h2><a href="https://example.org/15" rel="noopener">ENSO teleconnections and Indian monsoon variability</a></h2>
+<div class="meta"><span class="authors">S Samuel</span>
+<span>Journal of Climate</span><span class="tag research">research</span></div>
+<p class="abstract">El Nino Southern Oscillation drives rainfall anomalies across South Asia.</p>
+</article><article data-s="permafrost carbon feedback in cmip6 models t kreuzer, a van vliet the cryosphere methane release from thawing permafrost and its radiative forcing implications.">
+<h2><a href="https://example.org/18" rel="noopener">Permafrost carbon feedback in CMIP6 models</a></h2>
+<div class="meta"><span class="authors">T Kreuzer, A van Vliet</span>
+<span>The Cryosphere</span><span class="tag research">research</span></div>
+<p class="abstract">Methane release from thawing permafrost and its radiative forcing implications.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/14" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/20" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article>
+</section><section class="day" id="d2026-07-17">
+<div class="day-head"><span class="day-date">2026-07-17</span>
+<span class="day-count">4 works</span><div class="day-depth">layer 4</div></div>
+<article data-s="enso teleconnections and indian monsoon variability s samuel journal of climate el nino southern oscillation drives rainfall anomalies across south asia.">
+<h2><a href="https://example.org/24" rel="noopener">ENSO teleconnections and Indian monsoon variability</a></h2>
+<div class="meta"><span class="authors">S Samuel</span>
+<span>Journal of Climate</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">El Nino Southern Oscillation drives rainfall anomalies across South Asia.</p>
+</article><article data-s="enso teleconnections and indian monsoon variability s samuel journal of climate el nino southern oscillation drives rainfall anomalies across south asia.">
+<h2><a href="https://example.org/25" rel="noopener">ENSO teleconnections and Indian monsoon variability</a></h2>
+<div class="meta"><span class="authors">S Samuel</span>
+<span>Journal of Climate</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">El Nino Southern Oscillation drives rainfall anomalies across South Asia.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/22" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/23" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article>
+</section><section class="day" id="d2026-07-16">
+<div class="day-head"><span class="day-date">2026-07-16</span>
+<span class="day-count">2 works</span><div class="day-depth">layer 5</div></div>
+<article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/28" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/29" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article>
+</section><section class="day" id="d2026-07-15">
+<div class="day-head"><span class="day-date">2026-07-15</span>
+<span class="day-count">4 works</span><div class="day-depth">layer 6</div></div>
+<article data-s="climate finance flows and the paris agreement stocktake v shaw climate policy assessment of adaptation finance against unfccc commitments.">
+<h2><a href="https://example.org/31" rel="noopener">Climate finance flows and the Paris Agreement stocktake</a></h2>
+<div class="meta"><span class="authors">V Shaw</span>
+<span>Climate Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Assessment of adaptation finance against UNFCCC commitments.</p>
+</article><article data-s="net zero pathways for european steel production m schubotz, l morejon energy policy decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.">
+<h2><a href="https://example.org/34" rel="noopener">Net zero pathways for European steel production</a></h2>
+<div class="meta"><span class="authors">M Schubotz, L Morejon</span>
+<span>Energy Policy</span><span class="tag policy">policy</span><span class="tag oa">open</span></div>
+<p class="abstract">Decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.</p>
+</article><article data-s="permafrost carbon feedback in cmip6 models t kreuzer, a van vliet the cryosphere methane release from thawing permafrost and its radiative forcing implications.">
+<h2><a href="https://example.org/30" rel="noopener">Permafrost carbon feedback in CMIP6 models</a></h2>
+<div class="meta"><span class="authors">T Kreuzer, A van Vliet</span>
+<span>The Cryosphere</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Methane release from thawing permafrost and its radiative forcing implications.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/32" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article>
+</section><section class="day" id="d2026-07-14">
+<div class="day-head"><span class="day-date">2026-07-14</span>
+<span class="day-count">6 works</span><div class="day-depth">layer 7</div></div>
+<article data-s="climate finance flows and the paris agreement stocktake v shaw climate policy assessment of adaptation finance against unfccc commitments.">
+<h2><a href="https://example.org/39" rel="noopener">Climate finance flows and the Paris Agreement stocktake</a></h2>
+<div class="meta"><span class="authors">V Shaw</span>
+<span>Climate Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Assessment of adaptation finance against UNFCCC commitments.</p>
+</article><article data-s="climate finance flows and the paris agreement stocktake v shaw climate policy assessment of adaptation finance against unfccc commitments.">
+<h2><a href="https://example.org/42" rel="noopener">Climate finance flows and the Paris Agreement stocktake</a></h2>
+<div class="meta"><span class="authors">V Shaw</span>
+<span>Climate Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Assessment of adaptation finance against UNFCCC commitments.</p>
+</article><article data-s="constraining aerosol radiative forcing with satellite retrievals a lovelace, b chen atmospheric chemistry and physics we reduce uncertainty in climate sensitivity using modis observations of cloud albedo.">
+<h2><a href="https://example.org/35" rel="noopener">Constraining aerosol radiative forcing with satellite retrievals</a></h2>
+<div class="meta"><span class="authors">A Lovelace, B Chen</span>
+<span>Atmospheric Chemistry and Physics</span><span class="tag research">research</span></div>
+<p class="abstract">We reduce uncertainty in climate sensitivity using MODIS observations of cloud albedo.</p>
+</article><article data-s="constraining aerosol radiative forcing with satellite retrievals a lovelace, b chen atmospheric chemistry and physics we reduce uncertainty in climate sensitivity using modis observations of cloud albedo.">
+<h2><a href="https://example.org/38" rel="noopener">Constraining aerosol radiative forcing with satellite retrievals</a></h2>
+<div class="meta"><span class="authors">A Lovelace, B Chen</span>
+<span>Atmospheric Chemistry and Physics</span><span class="tag research">research</span></div>
+<p class="abstract">We reduce uncertainty in climate sensitivity using MODIS observations of cloud albedo.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/36" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/37" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article>
+</section><section class="day" id="d2026-07-13">
+<div class="day-head"><span class="day-date">2026-07-13</span>
+<span class="day-count">4 works</span><div class="day-depth">layer 8</div></div>
+<article data-s="ocean acidification impacts on calcifying plankton j doe, k ray biogeosciences carbon cycle feedbacks in the southern ocean under rising atmospheric co2.">
+<h2><a href="https://example.org/43" rel="noopener">Ocean acidification impacts on calcifying plankton</a></h2>
+<div class="meta"><span class="authors">J Doe, K Ray</span>
+<span>Biogeosciences</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Carbon cycle feedbacks in the Southern Ocean under rising atmospheric CO2.</p>
+</article><article data-s="enso teleconnections and indian monsoon variability s samuel journal of climate el nino southern oscillation drives rainfall anomalies across south asia.">
+<h2><a href="https://example.org/50" rel="noopener">ENSO teleconnections and Indian monsoon variability</a></h2>
+<div class="meta"><span class="authors">S Samuel</span>
+<span>Journal of Climate</span><span class="tag research">research</span></div>
+<p class="abstract">El Nino Southern Oscillation drives rainfall anomalies across South Asia.</p>
+</article><article data-s="permafrost carbon feedback in cmip6 models t kreuzer, a van vliet the cryosphere methane release from thawing permafrost and its radiative forcing implications.">
+<h2><a href="https://example.org/47" rel="noopener">Permafrost carbon feedback in CMIP6 models</a></h2>
+<div class="meta"><span class="authors">T Kreuzer, A van Vliet</span>
+<span>The Cryosphere</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Methane release from thawing permafrost and its radiative forcing implications.</p>
+</article><article data-s="constraining aerosol radiative forcing with satellite retrievals a lovelace, b chen atmospheric chemistry and physics we reduce uncertainty in climate sensitivity using modis observations of cloud albedo.">
+<h2><a href="https://example.org/44" rel="noopener">Constraining aerosol radiative forcing with satellite retrievals</a></h2>
+<div class="meta"><span class="authors">A Lovelace, B Chen</span>
+<span>Atmospheric Chemistry and Physics</span><span class="tag research">research</span></div>
+<p class="abstract">We reduce uncertainty in climate sensitivity using MODIS observations of cloud albedo.</p>
+</article>
+</section><section class="day" id="d2026-07-12">
+<div class="day-head"><span class="day-date">2026-07-12</span>
+<span class="day-count">3 works</span><div class="day-depth">layer 9</div></div>
+<article data-s="ocean acidification impacts on calcifying plankton j doe, k ray biogeosciences carbon cycle feedbacks in the southern ocean under rising atmospheric co2.">
+<h2><a href="https://example.org/54" rel="noopener">Ocean acidification impacts on calcifying plankton</a></h2>
+<div class="meta"><span class="authors">J Doe, K Ray</span>
+<span>Biogeosciences</span><span class="tag research">research</span></div>
+<p class="abstract">Carbon cycle feedbacks in the Southern Ocean under rising atmospheric CO2.</p>
+</article><article data-s="ocean acidification impacts on calcifying plankton j doe, k ray biogeosciences carbon cycle feedbacks in the southern ocean under rising atmospheric co2.">
+<h2><a href="https://example.org/56" rel="noopener">Ocean acidification impacts on calcifying plankton</a></h2>
+<div class="meta"><span class="authors">J Doe, K Ray</span>
+<span>Biogeosciences</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Carbon cycle feedbacks in the Southern Ocean under rising atmospheric CO2.</p>
+</article><article data-s="net zero pathways for european steel production m schubotz, l morejon energy policy decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.">
+<h2><a href="https://example.org/52" rel="noopener">Net zero pathways for European steel production</a></h2>
+<div class="meta"><span class="authors">M Schubotz, L Morejon</span>
+<span>Energy Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.</p>
+</article>
+</section><section class="day" id="d2026-07-11">
+<div class="day-head"><span class="day-date">2026-07-11</span>
+<span class="day-count">4 works</span><div class="day-depth">layer 10</div></div>
+<article data-s="ocean acidification impacts on calcifying plankton j doe, k ray biogeosciences carbon cycle feedbacks in the southern ocean under rising atmospheric co2.">
+<h2><a href="https://example.org/57" rel="noopener">Ocean acidification impacts on calcifying plankton</a></h2>
+<div class="meta"><span class="authors">J Doe, K Ray</span>
+<span>Biogeosciences</span><span class="tag research">research</span></div>
+<p class="abstract">Carbon cycle feedbacks in the Southern Ocean under rising atmospheric CO2.</p>
+</article><article data-s="ocean acidification impacts on calcifying plankton j doe, k ray biogeosciences carbon cycle feedbacks in the southern ocean under rising atmospheric co2.">
+<h2><a href="https://example.org/60" rel="noopener">Ocean acidification impacts on calcifying plankton</a></h2>
+<div class="meta"><span class="authors">J Doe, K Ray</span>
+<span>Biogeosciences</span><span class="tag research">research</span></div>
+<p class="abstract">Carbon cycle feedbacks in the Southern Ocean under rising atmospheric CO2.</p>
+</article><article data-s="permafrost carbon feedback in cmip6 models t kreuzer, a van vliet the cryosphere methane release from thawing permafrost and its radiative forcing implications.">
+<h2><a href="https://example.org/59" rel="noopener">Permafrost carbon feedback in CMIP6 models</a></h2>
+<div class="meta"><span class="authors">T Kreuzer, A van Vliet</span>
+<span>The Cryosphere</span><span class="tag research">research</span></div>
+<p class="abstract">Methane release from thawing permafrost and its radiative forcing implications.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/62" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article>
+</section><section class="day" id="d2026-07-10">
+<div class="day-head"><span class="day-date">2026-07-10</span>
+<span class="day-count">4 works</span><div class="day-depth">layer 11</div></div>
+<article data-s="climate finance flows and the paris agreement stocktake v shaw climate policy assessment of adaptation finance against unfccc commitments.">
+<h2><a href="https://example.org/64" rel="noopener">Climate finance flows and the Paris Agreement stocktake</a></h2>
+<div class="meta"><span class="authors">V Shaw</span>
+<span>Climate Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Assessment of adaptation finance against UNFCCC commitments.</p>
+</article><article data-s="sea level rise projections under ssp scenarios to 2150 b marzeion, t slater, r kwok nature climate change ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.">
+<h2><a href="https://example.org/63" rel="noopener">Sea level rise projections under SSP scenarios to 2150</a></h2>
+<div class="meta"><span class="authors">B Marzeion, T Slater, R Kwok</span>
+<span>Nature Climate Change</span><span class="tag research">research</span></div>
+<p class="abstract">Ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.</p>
+</article><article data-s="sea level rise projections under ssp scenarios to 2150 b marzeion, t slater, r kwok nature climate change ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.">
+<h2><a href="https://example.org/66" rel="noopener">Sea level rise projections under SSP scenarios to 2150</a></h2>
+<div class="meta"><span class="authors">B Marzeion, T Slater, R Kwok</span>
+<span>Nature Climate Change</span><span class="tag research">research</span></div>
+<p class="abstract">Ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/68" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article>
+</section><section class="day" id="d2026-07-09">
+<div class="day-head"><span class="day-date">2026-07-09</span>
+<span class="day-count">2 works</span><div class="day-depth">layer 12</div></div>
+<article data-s="sea level rise projections under ssp scenarios to 2150 b marzeion, t slater, r kwok nature climate change ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.">
+<h2><a href="https://example.org/71" rel="noopener">Sea level rise projections under SSP scenarios to 2150</a></h2>
+<div class="meta"><span class="authors">B Marzeion, T Slater, R Kwok</span>
+<span>Nature Climate Change</span><span class="tag research">research</span></div>
+<p class="abstract">Ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.</p>
+</article><article data-s="enso teleconnections and indian monsoon variability s samuel journal of climate el nino southern oscillation drives rainfall anomalies across south asia.">
+<h2><a href="https://example.org/72" rel="noopener">ENSO teleconnections and Indian monsoon variability</a></h2>
+<div class="meta"><span class="authors">S Samuel</span>
+<span>Journal of Climate</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">El Nino Southern Oscillation drives rainfall anomalies across South Asia.</p>
+</article>
+</section><section class="day" id="d2026-07-08">
+<div class="day-head"><span class="day-date">2026-07-08</span>
+<span class="day-count">3 works</span><div class="day-depth">layer 13</div></div>
+<article data-s="net zero pathways for european steel production m schubotz, l morejon energy policy decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.">
+<h2><a href="https://example.org/73" rel="noopener">Net zero pathways for European steel production</a></h2>
+<div class="meta"><span class="authors">M Schubotz, L Morejon</span>
+<span>Energy Policy</span><span class="tag policy">policy</span><span class="tag oa">open</span></div>
+<p class="abstract">Decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.</p>
+</article><article data-s="permafrost carbon feedback in cmip6 models t kreuzer, a van vliet the cryosphere methane release from thawing permafrost and its radiative forcing implications.">
+<h2><a href="https://example.org/75" rel="noopener">Permafrost carbon feedback in CMIP6 models</a></h2>
+<div class="meta"><span class="authors">T Kreuzer, A van Vliet</span>
+<span>The Cryosphere</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Methane release from thawing permafrost and its radiative forcing implications.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/76" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article>
+</section><section class="day" id="d2026-07-07">
+<div class="day-head"><span class="day-date">2026-07-07</span>
+<span class="day-count">4 works</span><div class="day-depth">layer 14</div></div>
+<article data-s="sea level rise projections under ssp scenarios to 2150 b marzeion, t slater, r kwok nature climate change ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.">
+<h2><a href="https://example.org/80" rel="noopener">Sea level rise projections under SSP scenarios to 2150</a></h2>
+<div class="meta"><span class="authors">B Marzeion, T Slater, R Kwok</span>
+<span>Nature Climate Change</span><span class="tag research">research</span></div>
+<p class="abstract">Ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.</p>
+</article><article data-s="net zero pathways for european steel production m schubotz, l morejon energy policy decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.">
+<h2><a href="https://example.org/79" rel="noopener">Net zero pathways for European steel production</a></h2>
+<div class="meta"><span class="authors">M Schubotz, L Morejon</span>
+<span>Energy Policy</span><span class="tag policy">policy</span><span class="tag oa">open</span></div>
+<p class="abstract">Decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/83" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/84" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article>
+</section><section class="day" id="d2026-07-06">
+<div class="day-head"><span class="day-date">2026-07-06</span>
+<span class="day-count">7 works</span><div class="day-depth">layer 15</div></div>
+<article data-s="ocean acidification impacts on calcifying plankton j doe, k ray biogeosciences carbon cycle feedbacks in the southern ocean under rising atmospheric co2.">
+<h2><a href="https://example.org/94" rel="noopener">Ocean acidification impacts on calcifying plankton</a></h2>
+<div class="meta"><span class="authors">J Doe, K Ray</span>
+<span>Biogeosciences</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Carbon cycle feedbacks in the Southern Ocean under rising atmospheric CO2.</p>
+</article><article data-s="enso teleconnections and indian monsoon variability s samuel journal of climate el nino southern oscillation drives rainfall anomalies across south asia.">
+<h2><a href="https://example.org/88" rel="noopener">ENSO teleconnections and Indian monsoon variability</a></h2>
+<div class="meta"><span class="authors">S Samuel</span>
+<span>Journal of Climate</span><span class="tag research">research</span></div>
+<p class="abstract">El Nino Southern Oscillation drives rainfall anomalies across South Asia.</p>
+</article><article data-s="permafrost carbon feedback in cmip6 models t kreuzer, a van vliet the cryosphere methane release from thawing permafrost and its radiative forcing implications.">
+<h2><a href="https://example.org/92" rel="noopener">Permafrost carbon feedback in CMIP6 models</a></h2>
+<div class="meta"><span class="authors">T Kreuzer, A van Vliet</span>
+<span>The Cryosphere</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Methane release from thawing permafrost and its radiative forcing implications.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/89" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/91" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/95" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/87" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article>
+</section><section class="day" id="d2026-07-05">
+<div class="day-head"><span class="day-date">2026-07-05</span>
+<span class="day-count">6 works</span><div class="day-depth">layer 16</div></div>
+<article data-s="climate finance flows and the paris agreement stocktake v shaw climate policy assessment of adaptation finance against unfccc commitments.">
+<h2><a href="https://example.org/98" rel="noopener">Climate finance flows and the Paris Agreement stocktake</a></h2>
+<div class="meta"><span class="authors">V Shaw</span>
+<span>Climate Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Assessment of adaptation finance against UNFCCC commitments.</p>
+</article><article data-s="sea level rise projections under ssp scenarios to 2150 b marzeion, t slater, r kwok nature climate change ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.">
+<h2><a href="https://example.org/96" rel="noopener">Sea level rise projections under SSP scenarios to 2150</a></h2>
+<div class="meta"><span class="authors">B Marzeion, T Slater, R Kwok</span>
+<span>Nature Climate Change</span><span class="tag research">research</span></div>
+<p class="abstract">Ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.</p>
+</article><article data-s="net zero pathways for european steel production m schubotz, l morejon energy policy decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.">
+<h2><a href="https://example.org/97" rel="noopener">Net zero pathways for European steel production</a></h2>
+<div class="meta"><span class="authors">M Schubotz, L Morejon</span>
+<span>Energy Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.</p>
+</article><article data-s="net zero pathways for european steel production m schubotz, l morejon energy policy decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.">
+<h2><a href="https://example.org/104" rel="noopener">Net zero pathways for European steel production</a></h2>
+<div class="meta"><span class="authors">M Schubotz, L Morejon</span>
+<span>Energy Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Decarbonisation scenarios, carbon budget allocation and emission reduction to 2050.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/101" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/100" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article>
+</section><section class="day" id="d2026-07-04">
+<div class="day-head"><span class="day-date">2026-07-04</span>
+<span class="day-count">7 works</span><div class="day-depth">layer 17</div></div>
+<article data-s="ocean acidification impacts on calcifying plankton j doe, k ray biogeosciences carbon cycle feedbacks in the southern ocean under rising atmospheric co2.">
+<h2><a href="https://example.org/110" rel="noopener">Ocean acidification impacts on calcifying plankton</a></h2>
+<div class="meta"><span class="authors">J Doe, K Ray</span>
+<span>Biogeosciences</span><span class="tag research">research</span></div>
+<p class="abstract">Carbon cycle feedbacks in the Southern Ocean under rising atmospheric CO2.</p>
+</article><article data-s="ocean acidification impacts on calcifying plankton j doe, k ray biogeosciences carbon cycle feedbacks in the southern ocean under rising atmospheric co2.">
+<h2><a href="https://example.org/112" rel="noopener">Ocean acidification impacts on calcifying plankton</a></h2>
+<div class="meta"><span class="authors">J Doe, K Ray</span>
+<span>Biogeosciences</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Carbon cycle feedbacks in the Southern Ocean under rising atmospheric CO2.</p>
+</article><article data-s="permafrost carbon feedback in cmip6 models t kreuzer, a van vliet the cryosphere methane release from thawing permafrost and its radiative forcing implications.">
+<h2><a href="https://example.org/107" rel="noopener">Permafrost carbon feedback in CMIP6 models</a></h2>
+<div class="meta"><span class="authors">T Kreuzer, A van Vliet</span>
+<span>The Cryosphere</span><span class="tag research">research</span></div>
+<p class="abstract">Methane release from thawing permafrost and its radiative forcing implications.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/106" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/105" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/108" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/111" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article>
+</section><section class="day" id="d2026-07-03">
+<div class="day-head"><span class="day-date">2026-07-03</span>
+<span class="day-count">6 works</span><div class="day-depth">layer 18</div></div>
+<article data-s="climate finance flows and the paris agreement stocktake v shaw climate policy assessment of adaptation finance against unfccc commitments.">
+<h2><a href="https://example.org/114" rel="noopener">Climate finance flows and the Paris Agreement stocktake</a></h2>
+<div class="meta"><span class="authors">V Shaw</span>
+<span>Climate Policy</span><span class="tag policy">policy</span></div>
+<p class="abstract">Assessment of adaptation finance against UNFCCC commitments.</p>
+</article><article data-s="sea level rise projections under ssp scenarios to 2150 b marzeion, t slater, r kwok nature climate change ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.">
+<h2><a href="https://example.org/117" rel="noopener">Sea level rise projections under SSP scenarios to 2150</a></h2>
+<div class="meta"><span class="authors">B Marzeion, T Slater, R Kwok</span>
+<span>Nature Climate Change</span><span class="tag research">research</span></div>
+<p class="abstract">Ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.</p>
+</article><article data-s="permafrost carbon feedback in cmip6 models t kreuzer, a van vliet the cryosphere methane release from thawing permafrost and its radiative forcing implications.">
+<h2><a href="https://example.org/115" rel="noopener">Permafrost carbon feedback in CMIP6 models</a></h2>
+<div class="meta"><span class="authors">T Kreuzer, A van Vliet</span>
+<span>The Cryosphere</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Methane release from thawing permafrost and its radiative forcing implications.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/113" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/116" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/118" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article>
+</section><section class="day" id="d2026-07-02">
+<div class="day-head"><span class="day-date">2026-07-02</span>
+<span class="day-count">4 works</span><div class="day-depth">layer 19</div></div>
+<article data-s="constraining aerosol radiative forcing with satellite retrievals a lovelace, b chen atmospheric chemistry and physics we reduce uncertainty in climate sensitivity using modis observations of cloud albedo.">
+<h2><a href="https://example.org/121" rel="noopener">Constraining aerosol radiative forcing with satellite retrievals</a></h2>
+<div class="meta"><span class="authors">A Lovelace, B Chen</span>
+<span>Atmospheric Chemistry and Physics</span><span class="tag research">research</span></div>
+<p class="abstract">We reduce uncertainty in climate sensitivity using MODIS observations of cloud albedo.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/125" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/123" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article><article data-s="attribution of the 2025 mediterranean drought f otto environmental research letters anthropogenic warming increased drought likelihood by a factor of four.">
+<h2><a href="https://example.org/124" rel="noopener">Attribution of the 2025 Mediterranean drought</a></h2>
+<div class="meta"><span class="authors">F Otto</span>
+<span>Environmental Research Letters</span><span class="tag research">research</span></div>
+<p class="abstract">Anthropogenic warming increased drought likelihood by a factor of four.</p>
+</article>
+</section><section class="day" id="d2026-07-01">
+<div class="day-head"><span class="day-date">2026-07-01</span>
+<span class="day-count">2 works</span><div class="day-depth">layer 20</div></div>
+<article data-s="permafrost carbon feedback in cmip6 models t kreuzer, a van vliet the cryosphere methane release from thawing permafrost and its radiative forcing implications.">
+<h2><a href="https://example.org/127" rel="noopener">Permafrost carbon feedback in CMIP6 models</a></h2>
+<div class="meta"><span class="authors">T Kreuzer, A van Vliet</span>
+<span>The Cryosphere</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">Methane release from thawing permafrost and its radiative forcing implications.</p>
+</article><article data-s="constraining aerosol radiative forcing with satellite retrievals a lovelace, b chen atmospheric chemistry and physics we reduce uncertainty in climate sensitivity using modis observations of cloud albedo.">
+<h2><a href="https://example.org/130" rel="noopener">Constraining aerosol radiative forcing with satellite retrievals</a></h2>
+<div class="meta"><span class="authors">A Lovelace, B Chen</span>
+<span>Atmospheric Chemistry and Physics</span><span class="tag research">research</span></div>
+<p class="abstract">We reduce uncertainty in climate sensitivity using MODIS observations of cloud albedo.</p>
+</article>
+</section><section class="day" id="d2026-06-30">
+<div class="day-head"><span class="day-date">2026-06-30</span>
+<span class="day-count">5 works</span><div class="day-depth">layer 21</div></div>
+<article data-s="sea level rise projections under ssp scenarios to 2150 b marzeion, t slater, r kwok nature climate change ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.">
+<h2><a href="https://example.org/135" rel="noopener">Sea level rise projections under SSP scenarios to 2150</a></h2>
+<div class="meta"><span class="authors">B Marzeion, T Slater, R Kwok</span>
+<span>Nature Climate Change</span><span class="tag research">research</span></div>
+<p class="abstract">Ice sheet contribution, thermal expansion and coastal risk under high emission scenarios.</p>
+</article><article data-s="ocean acidification impacts on calcifying plankton j doe, k ray biogeosciences carbon cycle feedbacks in the southern ocean under rising atmospheric co2.">
+<h2><a href="https://example.org/138" rel="noopener">Ocean acidification impacts on calcifying plankton</a></h2>
+<div class="meta"><span class="authors">J Doe, K Ray</span>
+<span>Biogeosciences</span><span class="tag research">research</span></div>
+<p class="abstract">Carbon cycle feedbacks in the Southern Ocean under rising atmospheric CO2.</p>
+</article><article data-s="constraining aerosol radiative forcing with satellite retrievals a lovelace, b chen atmospheric chemistry and physics we reduce uncertainty in climate sensitivity using modis observations of cloud albedo.">
+<h2><a href="https://example.org/134" rel="noopener">Constraining aerosol radiative forcing with satellite retrievals</a></h2>
+<div class="meta"><span class="authors">A Lovelace, B Chen</span>
+<span>Atmospheric Chemistry and Physics</span><span class="tag research">research</span><span class="tag oa">open</span></div>
+<p class="abstract">We reduce uncertainty in climate sensitivity using MODIS observations of cloud albedo.</p>
+</article><article data-s="quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts a petoukhov, s rahmstorf open mind atmospheric circulation and extreme weather under sustained warming across cmip6 ensembles.">
+<h2><a href="https://example.org/133" rel="noopener">Quasi-stationary waves: modeling, mechanisms, and their role in heatwave impacts</a></h2>
+<div class="meta"><span class="authors">A Petoukhov, S Rahmstorf</span>
+<span>Open MIND</span><span class="tag research">research</span></div>
+<p class="abstract">Atmospheric circulation and extreme weather under sustained warming across CMIP6 ensembles.</p>
+</article><article data-s="glacier mass balance in the hindu kush himalaya p sharma nature geoscience sea level contribution and water security under 1.5c and 2c warming.">
+<h2><a href="https://example.org/137" rel="noopener">Glacier mass balance in the Hindu Kush Himalaya</a></h2>
+<div class="meta"><span class="authors">P Sharma</span>
+<span>Nature Geoscience</span><span class="tag research">research</span></div>
+<p class="abstract">Sea level contribution and water security under 1.5C and 2C warming.</p>
+</article>
+</section></main>
+</div>
+
+<section class="about" id="about">
+<div>
+<h3>The banner</h3>
+<p>Each stripe is one year of global mean temperature, progressing from blue (cooler) at 1850 on the left to red (warmer) at 2025 on the right. The graphic was designed by climatologist Ed Hawkins. The photograph behind it combines two Galileo images, of Earth and of the Moon, returned in 1992 en route to Jupiter.</p>
+</div>
+<div>
+<h3>What this is</h3>
+<p>A daily layer of new climate research and policy analysis, pulled
+automatically from OpenAlex, arXiv and a set of policy newsrooms. Every
+item is scored for climate relevance before it appears.</p>
+<p>Nothing here is hand-curated. If something looks wrong, it probably is.</p>
+</div>
+<div>
+<h3>How scoring works</h3>
+<p>A weighted lexicon runs over title and abstract. Decisive terms score
+high, ambient ones only count in combination, and vocabulary borrowed by
+other fields scores negative, so carbon nanotubes and tumour studies do not
+drift in. Title matches count double.</p>
+<p>Above 2.5 an item is accepted. Below 0.8 it is rejected. In between it
+lands in <a href="uncertain.html">uncertain</a>, published separately.</p>
+</div>
+<div>
+<h3>How it runs</h3>
+<p>One scheduled job per day on GitHub Actions, rendering a static page. No
+server runs between builds, so this site draws no power while you are not
+reading it.</p>
+<p>Code and the full database are <a href="https://github.com/VasundharaShaw/climate-feed">open on GitHub</a>.</p>
+</div>
+<div>
+<h3>Who made it</h3>
+<p>Built by <a href="https://vasundharashaw.github.io">Vasundhara Shaw</a>, an astrophysicist and
+research software engineer working on open science infrastructure.</p>
+<p>Written with the help of <a href="https://claude.ai">Claude</a>, an AI
+assistant made by Anthropic.</p>
+<p>Corrections and suggested sources:
+<a class="mail" href="mailto:vasundhara.shaw@fiz-karlsruhe.de?subject=climate-feed">vasundhara.shaw@fiz-karlsruhe.de</a></p>
+<a class="cta" href="feedback.html">Send feedback</a>
+</div>
+</section><section class="about" id="emissions">
+<div>
+<h3>How the figure is calculated</h3>
+<p>Every HTTP response during a run is weighed, and the total is multiplied
+by an energy intensity for network transfer and then by a grid carbon
+intensity. The most recent run:</p>
+<pre class="calc">1.3 MB transferred
+  &times; 0.06 kWh/GB      network transfer intensity
+  = 0.000079 kWh
+  &times; 250 gCO&#8322;e/kWh   grid carbon intensity
+  = 0.02 g CO&#8322;e</pre>
+<p>The byte count is measured. Both coefficients are assumptions, and
+both are cited below so you can judge them.</p>
+</div>
+<div>
+<h3>Where the coefficients come from</h3>
+<p>The transfer intensity is the 2015 estimate from Aslan, Mayers, Koomey
+and France, <a href="https://doi.org/10.1111/jiec.12630">Electricity
+Intensity of Internet Data Transmission</a> (Journal of Industrial Ecology
+22(4), 785&ndash;798). It covers core and fixed-line access networks only,
+not data centres and not your device.</p>
+<p>That paper also finds the figure has halved roughly every two years since
+2000. Applied unadjusted a decade later it is therefore too high, probably
+by an order of magnitude. It is kept as a conservative upper bound rather
+than a best estimate, and published estimates for this quantity span several
+orders of magnitude depending on where the boundary is drawn.</p>
+<p>The grid intensity follows the <a
+href="https://www.eea.europa.eu/en/analysis/indicators/greenhouse-gas-emission-intensity-of-1">European
+Environment Agency</a>, whose EU-27 average was around 230 gCO&#8322;e/kWh
+in 2020 and has fallen since. The average hides a wide spread &mdash; Poland
+near 700, Sweden and Norway near zero &mdash; and this build runs on
+infrastructure whose location is not disclosed.</p>
+</div>
+<div>
+<h3>What it leaves out</h3>
+<p>This is the transfer cost of fetching records, and nothing else. It
+excludes the electricity the build runner itself consumes, which for a job
+of this length is likely larger than the number above. It excludes serving
+these pages to you, which at any real readership dominates everything else.
+It excludes the hardware's embodied carbon, and the work done by OpenAlex
+and arXiv answering the queries.</p>
+<p>Treat it as a floor on one component, not as this site's footprint.
+Replacing both coefficients with direct measurement is the obvious
+improvement.</p>
+</div>
+</section>
+
+<footer>
+<span>Built 2026-07-21 05:40 UTC</span>
+<span><a href="https://github.com/VasundharaShaw/climate-feed">Source &amp; data</a> &middot; <a href="feedback.html">Feedback</a></span>
+<span><a href="https://vasundharashaw.github.io">Vasundhara Shaw</a></span>
+</footer>
+</div>
+<script>
+const q=document.getElementById('q'),arts=[...document.querySelectorAll('article')],
+      days=[...document.querySelectorAll('.day')];
+q.addEventListener('input',()=>{
+  const v=q.value.trim().toLowerCase();
+  arts.forEach(a=>{a.hidden=v&&!a.dataset.s.includes(v)});
+  days.forEach(d=>{d.hidden=![...d.querySelectorAll('article')].some(a=>!a.hidden)});
+});
+</script>
+</body></html>

@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Germany — climate-feed</title>
+<meta name="description" content="German climate policy documents from federal agencies, advisory councils and research institutes.">
+<style>
+:root{
+  /* Earth from orbit: ocean, shelf, chlorophyll. Dark ground because the
+     imagery is of a lit planet against space -- and because a dark page
+     costs less energy to display on OLED, which this site cares about. */
+  --deep:#04171C;          /* deep ocean at night */
+  --abyss:#0B2B33;         /* raised surfaces */
+  --shelf:#12505A;         /* continental shelf */
+  --pale:#9DC7C4;          /* pale sea-glass, secondary text */
+  --snow:#EAF5F2;          /* primary text */
+  --ocean:#3E9FD4;         /* research accent, hydrosphere blue */
+  --bloom:#42C08A;         /* policy accent, chlorophyll green */
+  --rule:rgba(157,199,196,.2);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}
+  *{animation:none!important;transition:none!important}}
+body{
+  margin:0;background:var(--deep);color:var(--snow);
+  font-family:var(--sans);line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+/* ---- masthead ---- */
+header{border-bottom:1px solid var(--rule);padding:56px 0 28px;margin-bottom:8px}
+h1{
+  font-size:clamp(2.4rem,6vw,4.2rem);line-height:.95;margin:0 0 18px;
+  font-weight:800;letter-spacing:-.045em;
+}
+h1 .sub{display:block;color:var(--pale);font-weight:300;
+  font-size:clamp(.9rem,2vw,1.05rem);letter-spacing:.16em;
+  text-transform:uppercase;margin-top:16px}
+.stats{display:flex;flex-wrap:wrap;gap:28px;font-family:var(--mono);
+  font-size:.76rem;color:var(--pale);margin-top:24px}
+.stats b{display:block;color:var(--snow);font-size:1.5rem;font-weight:600;
+  letter-spacing:-.02em;margin-bottom:2px}
+
+/* ---- search ---- */
+.search{margin:28px 0 0;position:relative}
+.search input{
+  width:100%;padding:13px 16px;background:rgba(157,199,196,.07);
+  border:1px solid var(--rule);border-radius:2px;color:var(--snow);
+  font-family:var(--mono);font-size:.85rem;
+}
+.search input:focus{outline:2px solid var(--ocean);outline-offset:1px;
+  background:rgba(157,199,196,.11)}
+.search input::placeholder{color:rgba(157,199,196,.5)}
+
+/* ---- the core ---- */
+.core-layout{display:grid;grid-template-columns:64px 1fr;gap:32px;
+  padding:40px 0 80px;align-items:start}
+.core{position:sticky;top:24px;display:flex;flex-direction:column;gap:2px}
+.core-label{font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;
+  color:rgba(157,199,196,.55);text-transform:uppercase;margin-bottom:8px;
+  writing-mode:vertical-rl;height:80px}
+.stratum{
+  display:block;border-radius:1px;background:var(--shelf);
+  border-left:3px solid var(--ocean);
+  transition:background .18s,border-color .18s;
+  position:relative;
+}
+.stratum:hover,.stratum:focus-visible{background:var(--ocean);
+  border-color:var(--snow);outline:none}
+.stratum span{position:absolute;left:100%;margin-left:8px;top:50%;
+  transform:translateY(-50%);font-family:var(--mono);font-size:.6rem;
+  color:var(--pale);white-space:nowrap;opacity:0;pointer-events:none;
+  transition:opacity .18s}
+.stratum:hover span,.stratum:focus-visible span{opacity:1}
+
+/* ---- days ---- */
+.day{margin-bottom:52px;scroll-margin-top:24px}
+.day-head{display:flex;align-items:baseline;gap:14px;
+  padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid var(--rule)}
+.day-date{font-family:var(--mono);font-size:1rem;letter-spacing:.04em;
+  color:var(--snow);font-weight:600}
+.day-count{font-family:var(--mono);font-size:.7rem;color:var(--pale)}
+.day-depth{margin-left:auto;font-family:var(--mono);font-size:.62rem;
+  color:rgba(157,199,196,.45)}
+
+/* ---- entries ---- */
+article{padding:16px 0;border-bottom:1px solid rgba(157,199,196,.08)}
+article:last-child{border-bottom:none}
+article h2{margin:0 0 7px;font-size:1.02rem;line-height:1.34;font-weight:500;
+  letter-spacing:-.008em}
+article h2 a{text-decoration:none;background-image:linear-gradient(var(--ocean),var(--ocean));
+  background-size:0 1px;background-position:0 100%;background-repeat:no-repeat;
+  transition:background-size .2s}
+article h2 a:hover,article h2 a:focus-visible{background-size:100% 1px;
+  color:var(--ocean);outline:none}
+.meta{font-family:var(--mono);font-size:.7rem;color:var(--pale);
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.meta .authors{color:rgba(234,245,242,.72)}
+.tag{padding:1px 7px;border:1px solid currentColor;border-radius:1px;
+  font-size:.6rem;letter-spacing:.1em;text-transform:uppercase}
+.tag.research{color:var(--ocean)}
+.tag.policy{color:var(--bloom)}
+.tag.oa{color:var(--pale);opacity:.7}
+.abstract{margin:9px 0 0;font-size:.86rem;color:rgba(234,245,242,.62);
+  line-height:1.55;max-width:68ch}
+
+
+.lede{margin:26px 0 0;max-width:60ch}
+.lede p{margin:0 0 12px;font-size:.98rem;line-height:1.62;
+  color:rgba(234,245,242,.82)}
+.lede p+p{font-size:.9rem;color:rgba(157,199,196,.78)}
+@media(max-width:640px){.lede p{font-size:.92rem}}
+
+/* ---- hero: Earth from orbit ---- */
+.hero{position:relative;margin:0 0 4px;border-bottom:1px solid var(--rule)}
+.hero-img{display:block;width:100%;height:clamp(200px,34vh,360px);
+  object-fit:cover;object-position:left center;
+  filter:saturate(1.05) contrast(1.03)}
+.hero-veil{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(4,23,28,.22) 0%,
+    rgba(4,23,28,0) 38%,rgba(4,23,28,.5) 78%,rgba(4,23,28,.95) 100%)}
+.hero-credit{position:absolute;right:11px;bottom:7px;display:flex;
+  flex-direction:column;align-items:flex-end;gap:2px;font-family:var(--mono);
+  font-size:.56rem;letter-spacing:.05em;line-height:1.4;text-align:right}
+.hero-credit a{color:rgba(234,245,242,.6);text-decoration:none}
+.hero-credit a:hover,.hero-credit a:focus-visible{color:var(--snow);
+  outline:none}
+
+.figure{margin:32px 0 0;border-top:1px solid var(--rule);padding-top:26px}
+.figure img{display:block;width:100%;height:auto;border-radius:2px}
+.figure figcaption{margin-top:10px;font-family:var(--mono);font-size:.66rem;
+  line-height:1.6;color:rgba(157,199,196,.7)}
+.figure figcaption a{color:var(--pale)}
+
+.calc{font-family:var(--mono);font-size:.74rem;line-height:1.75;
+  color:var(--pale);background:var(--abyss);border:1px solid var(--rule);
+  border-radius:2px;padding:14px 16px;margin:0 0 12px;overflow-x:auto;
+  white-space:pre}
+.about a.jump{color:var(--ocean);text-decoration:none;
+  border-bottom:1px solid rgba(62,159,212,.35)}
+
+/* ---- page tabs ---- */
+.tabs{display:flex;gap:2px;margin:26px 0 0;border-bottom:1px solid var(--rule)}
+.tab{padding:9px 15px 8px;font-family:var(--mono);font-size:.72rem;
+  letter-spacing:.1em;text-transform:uppercase;text-decoration:none;
+  color:var(--pale);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--snow)}
+.tab:focus-visible{outline:2px solid var(--ocean);outline-offset:-2px}
+.tab.on{color:var(--ocean);border-bottom-color:var(--ocean)}
+.tag.score{color:var(--pale);border-color:var(--rule);font-variant-numeric:
+  tabular-nums}
+
+/* ---- about + colophon ---- */
+.about{border-top:1px solid var(--rule);padding:44px 0 8px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:36px}
+.about h3{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--pale);margin:0 0 12px;font-family:var(--mono);font-weight:500}
+.about p{margin:0 0 10px;font-size:.85rem;color:rgba(234,245,242,.72);
+  line-height:1.6;max-width:46ch}
+.about a{color:var(--ocean);text-decoration:none;
+  border-bottom:1px solid rgba(62,159,212,.35)}
+.about a:hover,.about a:focus-visible{border-bottom-color:var(--ocean);
+  outline:none}
+.about .mail{font-family:var(--mono);font-size:.8rem;word-break:break-all}
+.cta{display:inline-block;margin-top:10px;padding:9px 16px;
+  border:1px solid var(--ocean);color:var(--ocean);
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;
+  text-transform:uppercase;text-decoration:none;border-bottom-width:1px}
+.cta:hover,.cta:focus-visible{background:var(--ocean);
+  color:var(--deep);outline:none}
+
+/* ---- contact page ---- */
+.page{max-width:620px;padding:36px 0 80px}
+.page p{font-size:.9rem;color:rgba(234,245,242,.75);line-height:1.65;
+  max-width:56ch}
+.page ul{font-size:.9rem;color:rgba(234,245,242,.75);line-height:1.9;
+  padding-left:20px;max-width:56ch}
+.contact{margin:36px 0 0;padding:28px 0 0;border-top:1px solid var(--rule)}
+.contact-lead{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--pale);margin:0 0 14px}
+.addr{display:inline-block;font-family:var(--mono);
+  font-size:clamp(.95rem,3vw,1.3rem);color:var(--ocean);
+  text-decoration:none;letter-spacing:-.01em;
+  border-bottom:1px solid rgba(62,159,212,.4);padding-bottom:2px}
+.addr:hover,.addr:focus-visible{border-bottom-color:var(--ocean);
+  outline:none}
+.copy{display:block;margin-top:20px;padding:8px 15px;background:none;
+  border:1px solid var(--rule);border-radius:2px;color:var(--pale);
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.09em;
+  text-transform:uppercase;cursor:pointer}
+.copy:hover{border-color:var(--ocean);color:var(--ocean)}
+.copy:focus-visible{outline:2px solid var(--ocean);outline-offset:2px}
+.hint{font-size:.78rem;color:rgba(157,199,196,.65);margin-top:10px;
+  line-height:1.55;max-width:52ch}
+.back{display:inline-block;margin-top:34px;font-family:var(--mono);
+  font-size:.72rem;color:var(--pale);text-decoration:none}
+.back:hover{color:var(--ocean)}
+.notice{padding:14px 16px;border:1px solid var(--bloom);border-radius:2px;
+  color:var(--bloom);font-size:.82rem;margin-bottom:24px}
+
+footer{border-top:1px solid var(--rule);padding:28px 0 56px;
+  font-family:var(--mono);font-size:.68rem;color:rgba(157,199,196,.6);
+  display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between}
+footer a{color:var(--pale)}
+.empty{padding:60px 0;color:var(--pale);font-family:var(--mono);
+  font-size:.85rem}
+
+@media (max-width:720px){
+  .core-layout{grid-template-columns:1fr;gap:0}
+  .core{display:none}
+}
+</style>
+</head><body>
+
+<div class="wrap">
+<header>
+<h1>Germany<span class="sub">Klimapolitik &mdash; agencies, councils, institutes</span></h1>
+<div class="lede">
+<p>German climate policy output from federal agencies, statutory advisory councils, research institutes and the journalism that covers the policy process. Policy is jurisdictional in a way research is not, so it gets its own page rather than diluting the main feed.</p>
+<p>This is the openly published subset. The professional briefings that practitioners actually rely on are paywalled and cannot be aggregated here.</p>
+</div>
+<nav class="tabs"><a class="tab" href="index.html">Feed</a><span class="tab on">Germany</span><a class="tab" href="uncertain.html">Uncertain</a><a class="tab" href="feedback.html">Feedback</a></nav>
+<div class="stats">
+<div><b>3</b>documents</div>
+<div><b>3</b>days with new work</div>
+<div><b>3</b>publishers</div>
+</div>
+<div class="search"><input id="q" type="search" placeholder="Filter by title, author, journal…" aria-label="Filter works"></div>
+</header>
+
+<div class="core-layout">
+<nav class="core" aria-label="Jump to day">
+<div class="core-label">Depth →</div>
+<a class="stratum" href="#d2026-07-21" style="height:61px;opacity:1.00" aria-label="2026-07-21, 1 works"><span>2026-07-21 · 1</span></a><a class="stratum" href="#d2026-07-20" style="height:61px;opacity:0.78" aria-label="2026-07-20, 1 works"><span>2026-07-20 · 1</span></a><a class="stratum" href="#d2026-07-19" style="height:61px;opacity:0.57" aria-label="2026-07-19, 1 works"><span>2026-07-19 · 1</span></a>
+</nav>
+<main><section class="day" id="d2026-07-21">
+<div class="day-head"><span class="day-date">2026-07-21</span>
+<span class="day-count">1 works</span><div class="day-depth">layer 1</div></div>
+<article data-s="klimaschutzprogramm 2026: bewertung des expertenrats  expertenrat für klimafragen der expertenrat für klimafragen legt seine prüfung des klimaschutzprogramms vor.">
+<h2><a href="https://example.de/0" rel="noopener">Klimaschutzprogramm 2026: Bewertung des Expertenrats</a></h2>
+<div class="meta"><span class="authors">—</span>
+<span>Expertenrat für Klimafragen</span><span class="tag policy">policy</span><span class="tag oa">open</span></div>
+<p class="abstract">Der Expertenrat für Klimafragen legt seine Prüfung des Klimaschutzprogramms vor.</p>
+</article>
+</section><section class="day" id="d2026-07-20">
+<div class="day-head"><span class="day-date">2026-07-20</span>
+<span class="day-count">1 works</span><div class="day-depth">layer 2</div></div>
+<article data-s="emissionsdaten 2025 für deutschland  umweltbundesamt das umweltbundesamt veröffentlicht die treibhausgasbilanz für das jahr 2025.">
+<h2><a href="https://example.de/1" rel="noopener">Emissionsdaten 2025 für Deutschland</a></h2>
+<div class="meta"><span class="authors">—</span>
+<span>Umweltbundesamt</span><span class="tag policy">policy</span><span class="tag oa">open</span></div>
+<p class="abstract">Das Umweltbundesamt veröffentlicht die Treibhausgasbilanz für das Jahr 2025.</p>
+</article>
+</section><section class="day" id="d2026-07-19">
+<div class="day-head"><span class="day-date">2026-07-19</span>
+<span class="day-count">1 works</span><div class="day-depth">layer 3</div></div>
+<article data-s="die energiewende in deutschland: jahresauswertung  agora energiewende auswertung zum stromsektor, emissionen und klimazielen.">
+<h2><a href="https://example.de/2" rel="noopener">Die Energiewende in Deutschland: Jahresauswertung</a></h2>
+<div class="meta"><span class="authors">—</span>
+<span>Agora Energiewende</span><span class="tag policy">policy</span><span class="tag oa">open</span></div>
+<p class="abstract">Auswertung zum Stromsektor, Emissionen und Klimazielen.</p>
+</article>
+</section></main>
+</div>
+
+<section class="about">
+<div>
+<h3>What is covered</h3>
+<p>Umweltbundesamt, BMUV, the Sachverständigenrat für Umweltfragen, and
+institutes including Agora Energiewende, MCC Berlin, Öko-Institut, DIW,
+the Wuppertal Institut and PIK. Plus Clean Energy Wire and Klimareporter°
+for the process itself.</p>
+<p>Everything here publishes openly. Nothing is scraped from behind a
+paywall.</p>
+</div>
+<div>
+<h3>What is missing</h3>
+<p>There is no single database of German climate policy documents, which is
+the gap this page is trying to fill. Bundestag proceedings, Länder-level
+policy, and the paywalled professional briefings are all absent.</p>
+<p>If you know a source that belongs here, that is the most useful thing
+you can send.</p>
+<a class="cta" href="feedback.html">Suggest a source</a>
+</div>
+<div>
+<h3>Other countries</h3>
+<p>Sources carry a region code, so adding a country is a matter of adding
+its feeds rather than restructuring anything. Germany is simply first.</p>
+<a class="cta" href="index.html">Back to the feed</a>
+</div>
+</section>
+
+<footer>
+<span>Built 2026-07-21 05:41 UTC</span>
+<span><a href="https://github.com/VasundharaShaw/climate-feed">Source &amp; data</a> &middot; <a href="feedback.html">Feedback</a></span>
+<span><a href="https://vasundharashaw.github.io">Vasundhara Shaw</a></span>
+</footer>
+</div>
+<script>
+const q=document.getElementById('q'),arts=[...document.querySelectorAll('article')],
+      days=[...document.querySelectorAll('.day')];
+q.addEventListener('input',()=>{
+  const v=q.value.trim().toLowerCase();
+  arts.forEach(a=>{a.hidden=v&&!a.dataset.s.includes(v)});
+  days.forEach(d=>{d.hidden=![...d.querySelectorAll('article')].some(a=>!a.hidden)});
+});
+</script>
+</body></html>

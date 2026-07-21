@@ -29,15 +29,18 @@ from ..normalise import block_key, title_key
 # name -> (url, publisher label)
 # Verified reachable at time of writing; run --check before trusting.
 FEEDS: dict[str, tuple[str, str]] = {
-    "carbonbrief":    ("https://www.carbonbrief.org/feed", "Carbon Brief"),
-    "climatehome":    ("https://www.climatechangenews.com/feed/", "Climate Home News"),
-    "insideclimate":  ("https://insideclimatenews.org/feed/", "Inside Climate News"),
-    # Removed after a live check on 2026-07-20: climateanalytics (404),
-    # wri (403), iisd_enb (403), eea (404), grantham_lse (no items).
-    # The 403s look like user-agent blocking and may be recoverable;
-    # the 404s need a current URL. Verify with
-    #   python -m ingest.sources.policy
-    # before re-adding anything.
+    # Verified working on 2026-07-20.
+    "carbonbrief":  ("https://www.carbonbrief.org/feed", "Carbon Brief"),
+    "climatehome":  ("https://www.climatechangenews.com/feed/", "Climate Home News"),
+    # Worked on 2026-07-20, returned 403 on 2026-07-21. Intermittent
+    # user-agent blocking rather than a wrong URL, so it stays.
+    "insideclimate": ("https://insideclimatenews.org/feed/", "Inside Climate News"),
+
+    # Verified 2026-07-21.
+    "grist":        ("https://grist.org/feed/", "Grist"),
+    "conversation": ("https://theconversation.com/global/environment/articles.atom",
+                     "The Conversation"),
+    "carbonpulse":  ("https://carbon-pulse.com/feed/", "Carbon Pulse"),
 }
 
 NS = {"atom": "http://www.w3.org/2005/Atom",
@@ -72,6 +75,16 @@ def _parse_date(raw: str | None) -> str | None:
 
 def _items(root: ET.Element):
     """Yield (title, link, summary, date_raw, author) for RSS or Atom."""
+    rss1 = "{http://purl.org/rss/1.0/}"
+    for item in list(root.iter("item")) + list(root.iter(rss1 + "item")):
+        if item.tag.startswith(rss1):                    # RSS 1.0 / RDF
+            yield (
+                _text(item, rss1 + "title"), _text(item, rss1 + "link"),
+                _text(item, rss1 + "description"),
+                _text(item, "{http://purl.org/dc/elements/1.1/}date"),
+                _text(item, "{http://purl.org/dc/elements/1.1/}creator"),
+            )
+            continue
     for item in root.iter("item"):                       # RSS 2.0
         yield (
             _text(item, "title"), _text(item, "link"),
