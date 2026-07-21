@@ -93,7 +93,11 @@ h1 .sub{display:block;color:var(--pale);font-weight:300;
 /* ---- the core ---- */
 .core-layout{display:grid;grid-template-columns:64px 1fr;gap:32px;
   padding:40px 0 80px;align-items:start}
-.core{position:sticky;top:24px;display:flex;flex-direction:column;gap:2px}
+.core-inner{display:flex;flex-direction:column;gap:2px}
+.core{position:sticky;top:24px;display:flex;flex-direction:column;gap:2px;
+  max-height:74vh;overflow-y:auto;scrollbar-width:none;
+  -ms-overflow-style:none}
+.core::-webkit-scrollbar{display:none}   /* the feed box already has one */
 .core-label{font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;
   color:rgba(157,199,196,.55);text-transform:uppercase;margin-bottom:8px;
   writing-mode:vertical-rl;height:80px}
@@ -176,6 +180,34 @@ article h2 a:hover,article h2 a:focus-visible{background-size:100% 1px;
   white-space:pre}
 .about a.jump{color:var(--ocean);text-decoration:none;
   border-bottom:1px solid rgba(62,159,212,.35)}
+
+/* ---- feed scroll box ---- */
+.feed-box{max-height:74vh;overflow-y:auto;overscroll-behavior:contain;
+  border:1px solid var(--rule);border-radius:3px;padding:0 22px;
+  background:rgba(11,43,51,.28);scrollbar-width:thin;
+  scrollbar-color:var(--shelf) transparent}
+.feed-box::-webkit-scrollbar{width:9px}
+.feed-box::-webkit-scrollbar-track{background:transparent}
+.feed-box::-webkit-scrollbar-thumb{background:var(--shelf);border-radius:5px;
+  border:2px solid transparent;background-clip:content-box}
+.feed-box::-webkit-scrollbar-thumb:hover{background:var(--ocean);
+  border:2px solid transparent;background-clip:content-box}
+.feed-box .day:first-child{padding-top:20px}
+.feed-box .day:last-child{padding-bottom:24px}
+@media(max-width:640px){.feed-box{max-height:none;overflow:visible;
+  border:0;padding:0;background:none}}
+
+/* ---- jump to top / bottom ---- */
+.jump{position:fixed;right:18px;bottom:18px;display:flex;
+  flex-direction:column;gap:1px;z-index:20}
+.jump button{width:38px;height:34px;border:1px solid var(--rule);
+  background:rgba(4,23,28,.92);color:var(--pale);cursor:pointer;
+  font-size:.8rem;line-height:1;backdrop-filter:blur(6px)}
+.jump button:first-child{border-radius:3px 3px 0 0}
+.jump button:last-child{border-radius:0 0 3px 3px;border-top:0}
+.jump button:hover{color:var(--ocean);border-color:var(--ocean)}
+.jump button:focus-visible{outline:2px solid var(--ocean);outline-offset:2px}
+@media(max-width:640px){.jump{right:10px;bottom:10px}}
 
 /* ---- page tabs ---- */
 .tabs{display:flex;gap:2px;margin:26px 0 0;border-bottom:1px solid var(--rule)}
@@ -468,7 +500,7 @@ def _shell(*, title: str, desc: str, head: str, stats: str, strata: str,
 <div class="core-label">Depth →</div>
 {strata}
 </nav>
-<main>{body}</main>
+<main class="feed-box" id="feed">{body}</main>
 </div>
 
 {about}
@@ -479,7 +511,12 @@ def _shell(*, title: str, desc: str, head: str, stats: str, strata: str,
 <span><a href="{AUTHOR_URL}">{AUTHOR}</a></span>
 </footer>
 </div>
-<script>{SEARCH_JS}</script>
+
+<div class="jump">
+<button type="button" data-to="top" title="Jump to top" aria-label="Jump to top">&#9650;</button>
+<button type="button" data-to="end" title="Jump to bottom" aria-label="Jump to bottom">&#9660;</button>
+</div>
+<script>{SEARCH_JS}{JUMP_JS}</script>
 </body></html>"""
 
 
@@ -595,7 +632,7 @@ def render() -> str:
 
     stats = f"""<div class="stats">
 <div><b>{len(rows):,}</b>works accepted</div>
-<div><b>{n_days}</b>days with new work</div>
+<div><b>{n_days}</b>days with new work, of {WINDOW_DAYS}</div>
 <div><b>{total_all:,}</b>records screened</div>
 <div><a href="#emissions"><b>{co2}</b>last build transfer</a></div>
 </div>"""
@@ -675,7 +712,7 @@ def render_germany() -> str:
 
     stats = f"""<div class="stats">
 <div><b>{len(rows):,}</b>documents</div>
-<div><b>{n_days}</b>days with new work</div>
+<div><b>{n_days}</b>days with new work, of {WINDOW_DAYS}</div>
 <div><b>{publishers}</b>publishers</div>
 </div>"""
 
@@ -741,7 +778,7 @@ def render_uncertain() -> str:
 
     stats = f"""<div class="stats">
 <div><b>{len(rows):,}</b>in the band</div>
-<div><b>{n_days}</b>days with entries</div>
+<div><b>{n_days}</b>days with entries, of {WINDOW_DAYS}</div>
 <div><b>0.8&#8202;–&#8202;2.5</b>score range</div>
 </div>"""
 
@@ -794,6 +831,47 @@ way or the other.</p>
 
 
 
+
+# Scrolls the feed box when there is one, the window otherwise -- on narrow
+# screens the box is unwrapped back into normal page flow.
+JUMP_JS = """
+(function(){
+  var box=document.getElementById('feed');
+  var rail=document.querySelector('.core');
+
+  // Keep the rail in proportion with the feed rather than letting it run
+  // on past the box. Guarded because either can be shorter than its
+  // container, in which case there is nothing to sync.
+  if(box&&rail){
+    var syncing=false;
+    box.addEventListener('scroll',function(){
+      if(syncing) return;
+      var bm=box.scrollHeight-box.clientHeight;
+      var rm=rail.scrollHeight-rail.clientHeight;
+      if(bm<=0||rm<=0) return;
+      syncing=true;
+      rail.scrollTop=(box.scrollTop/bm)*rm;
+      requestAnimationFrame(function(){syncing=false;});
+    },{passive:true});
+  }
+  function scrollable(){
+    return box && box.scrollHeight>box.clientHeight+4 ? box : null;
+  }
+  document.querySelectorAll('.jump button').forEach(function(b){
+    b.addEventListener('click',function(){
+      var el=scrollable(), end=b.dataset.to==='end';
+      if(el){
+        el.scrollTo({top:end?el.scrollHeight:0,behavior:'smooth'});
+        if(rail) rail.scrollTo({top:end?rail.scrollHeight:0,
+                                behavior:'smooth'});
+      }
+      else{window.scrollTo({top:end?document.body.scrollHeight:0,
+                            behavior:'smooth'});}
+    });
+  });
+})();
+"""
+
 LEDE = (
     "Every day a scheduled job pulls new work from OpenAlex, arXiv and a "
     "set of policy newsrooms, scores each item for climate relevance, and "
@@ -802,6 +880,7 @@ LEDE = (
 )
 
 LEDE_2 = (
+    f"The feed covers the last {WINDOW_DAYS} days. "
     "The site is static. No server runs between builds, so it draws no "
     "power while you are not reading it, and every build measures its own "
     "data transfer and estimated emissions."
